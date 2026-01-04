@@ -4,39 +4,45 @@ import { RecentPatients } from '@/components/dashboard/RecentPatients';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { UpcomingFollowups } from '@/components/dashboard/UpcomingFollowups';
 import { TopMedicines } from '@/components/dashboard/TopMedicines';
-import { mockDashboardStats } from '@/data/mockData';
-import { Users, UserPlus, CalendarCheck, FileText, AlertCircle } from 'lucide-react';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useDoctor } from '@/hooks/useDoctor';
+import { Users, UserPlus, CalendarCheck, FileText, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
+  const { doctorId, doctorInfo, loading: doctorLoading } = useDoctor();
+  const { data: stats, isLoading: statsLoading } = useDashboardStats(doctorId ?? undefined);
+
+  const isLoading = doctorLoading || statsLoading;
+  const doctorName = doctorInfo?.name || 'Doctor';
+
   return (
-    <MainLayout title="Dashboard" subtitle="Welcome back, Dr. Rajesh Kumar">
+    <MainLayout title="Dashboard" subtitle={`Welcome back, ${doctorName}`}>
       {/* Stats Grid */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Patients"
-          value={mockDashboardStats.totalPatients}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.totalPatients ?? 0}
           subtitle="All time registrations"
           icon={Users}
-          trend={{ value: 12, isPositive: true }}
           variant="primary"
         />
         <StatCard
           title="Today's Patients"
-          value={mockDashboardStats.todayPatients}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.todayPatients ?? 0}
           subtitle="Consultations today"
           icon={UserPlus}
           variant="accent"
         />
         <StatCard
           title="Pending Follow-ups"
-          value={mockDashboardStats.pendingFollowUps}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.pendingFollowUps ?? 0}
           subtitle="Scheduled this week"
           icon={CalendarCheck}
           variant="warning"
         />
         <StatCard
           title="Prescriptions"
-          value={mockDashboardStats.totalPrescriptions}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.totalPrescriptions ?? 0}
           subtitle="Total generated"
           icon={FileText}
         />
