@@ -20,6 +20,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import SuperAdmin from "./pages/SuperAdmin";
 import SaasAdmin from "./pages/SaasAdmin";
+import Landing from "./pages/Landing";
 import Appointments from "./pages/Appointments";
 import BookAppointment from "./pages/BookAppointment";
 import Symptoms from "./pages/Symptoms";
@@ -34,6 +35,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/book" element={<BookAppointment />} />
             <Route
