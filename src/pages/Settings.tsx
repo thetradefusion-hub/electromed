@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { currentDoctor } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import {
   User,
   Building,
@@ -12,24 +13,165 @@ import {
   Shield,
   Bell,
   Palette,
+  Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface ProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  registrationNo: string;
+  qualification: string;
+  specialization: string;
+  clinicName: string;
+  clinicAddress: string;
+}
+
 export default function Settings() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
-  const [profile, setProfile] = useState({
-    name: currentDoctor.name,
-    email: currentDoctor.email,
-    phone: currentDoctor.phone,
-    registrationNo: currentDoctor.registrationNo,
-    qualification: currentDoctor.qualification,
-    specialization: currentDoctor.specialization,
-    clinicName: currentDoctor.clinicName,
-    clinicAddress: currentDoctor.clinicAddress,
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState<ProfileData>({
+    name: '',
+    email: '',
+    phone: '',
+    registrationNo: '',
+    qualification: '',
+    specialization: '',
+    clinicName: '',
+    clinicAddress: '',
   });
 
-  const handleSave = () => {
-    toast.success('Settings saved successfully!');
+  // Password change state
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: '',
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  // Fetch profile data
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      setLoading(true);
+
+      // Fetch profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('name, email, phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      // Fetch doctor data
+      const { data: doctorData } = await supabase
+        .from('doctors')
+        .select('registration_no, qualification, specialization, clinic_name, clinic_address')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setProfile({
+        name: profileData?.name || '',
+        email: profileData?.email || user.email || '',
+        phone: profileData?.phone || '',
+        registrationNo: doctorData?.registration_no || '',
+        qualification: doctorData?.qualification || '',
+        specialization: doctorData?.specialization || '',
+        clinicName: doctorData?.clinic_name || '',
+        clinicAddress: doctorData?.clinic_address || '',
+      });
+
+      setLoading(false);
+    };
+
+    fetchProfile();
+  }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+
+    setSaving(true);
+
+    try {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          name: profile.name,
+          phone: profile.phone,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+
+      if (profileError) throw profileError;
+
+      // Update doctor
+      const { error: doctorError } = await supabase
+        .from('doctors')
+        .update({
+          registration_no: profile.registrationNo,
+          qualification: profile.qualification,
+          specialization: profile.specialization,
+          clinic_name: profile.clinicName,
+          clinic_address: profile.clinicAddress,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+
+      if (doctorError) throw doctorError;
+
+      toast.success('Settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving:', error);
+      toast.error('Failed to save settings');
+    }
+
+    setSaving(false);
+  };
+
+  const handlePasswordChange = async () => {
+    if (!passwords.new || !passwords.confirm) {
+      toast.error('Please fill all password fields');
+      return;
+    }
+
+    if (passwords.new !== passwords.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    if (passwords.new.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: passwords.new,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password changed successfully!');
+      setPasswords({ current: '', new: '', confirm: '' });
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      toast.error(error.message || 'Failed to change password');
+    }
+
+    setChangingPassword(false);
   };
 
   const tabs = [
@@ -39,6 +181,16 @@ export default function Settings() {
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
   ];
+
+  if (loading) {
+    return (
+      <MainLayout title="Settings" subtitle="Manage your account and preferences">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout title="Settings" subtitle="Manage your account and preferences">
@@ -100,9 +252,10 @@ export default function Settings() {
                   <input
                     type="email"
                     value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="medical-input"
+                    disabled
+                    className="medical-input bg-muted cursor-not-allowed"
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">Email cannot be changed</p>
                 </div>
                 <div>
                   <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -214,7 +367,7 @@ export default function Settings() {
                 <div>
                   <h2 className="text-xl font-semibold text-foreground">Security Settings</h2>
                   <p className="text-sm text-muted-foreground">
-                    Manage your password and security preferences
+                    Change your password
                   </p>
                 </div>
               </div>
@@ -224,20 +377,77 @@ export default function Settings() {
                   <label className="mb-1.5 text-sm font-medium text-foreground">
                     Current Password
                   </label>
-                  <input type="password" placeholder="••••••••" className="medical-input" />
+                  <div className="relative">
+                    <input
+                      type={showPasswords.current ? 'text' : 'password'}
+                      value={passwords.current}
+                      onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+                      placeholder="••••••••"
+                      className="medical-input pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPasswords.current ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1.5 text-sm font-medium text-foreground">
                     New Password
                   </label>
-                  <input type="password" placeholder="••••••••" className="medical-input" />
+                  <div className="relative">
+                    <input
+                      type={showPasswords.new ? 'text' : 'password'}
+                      value={passwords.new}
+                      onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                      placeholder="••••••••"
+                      className="medical-input pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPasswords.new ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="mb-1.5 text-sm font-medium text-foreground">
                     Confirm New Password
                   </label>
-                  <input type="password" placeholder="••••••••" className="medical-input" />
+                  <div className="relative">
+                    <input
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      value={passwords.confirm}
+                      onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                      placeholder="••••••••"
+                      className="medical-input pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPasswords.confirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
                 </div>
+                <button
+                  onClick={handlePasswordChange}
+                  disabled={changingPassword}
+                  className="medical-btn-secondary"
+                >
+                  {changingPassword ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Shield className="h-4 w-4" />
+                  )}
+                  Change Password
+                </button>
               </div>
             </div>
           )}
@@ -304,12 +514,18 @@ export default function Settings() {
           )}
 
           {/* Save Button */}
-          <div className="flex justify-end">
-            <button onClick={handleSave} className="medical-btn-primary">
-              <Save className="h-4 w-4" />
-              Save Changes
-            </button>
-          </div>
+          {(activeTab === 'profile' || activeTab === 'clinic') && (
+            <div className="flex justify-end">
+              <button onClick={handleSave} disabled={saving} className="medical-btn-primary">
+                {saving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Save Changes
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </MainLayout>
