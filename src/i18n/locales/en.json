@@ -223,6 +223,7 @@
     "subtitle": "Manage your account and preferences",
     "profile": "Profile",
     "clinic": "Clinic",
+    "subscription": "Subscription",
     "security": "Security",
     "notifications": "Notifications",
     "appearance": "Appearance",
@@ -243,7 +244,26 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "renewsOn": "Renews on",
+    "availablePlans": "Available Plans",
+    "patients": "Patients",
+    "aiAnalysis": "AI Analysis",
+    "patientsLimit": "Patient Limit",
+    "unlimited": "Unlimited"
+  },
+  "subscription": {
+    "basic": "Basic",
+    "professional": "Professional",
+    "enterprise": "Enterprise",
+    "perMonth": "/month",
+    "currentPlan": "Current Plan",
+    "trialActive": "Trial Active",
+    "daysRemaining": "days remaining",
+    "patientLimitReached": "Patient limit reached. Upgrade to add more.",
+    "aiQuotaExhausted": "AI analysis quota exhausted. Upgrade for more."
   },
   "superAdmin": {
     "title": "Super Admin",

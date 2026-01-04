@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useQuery } from '@tanstack/react-query';
 import {
   User,
   Building,
@@ -16,8 +19,13 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Crown,
+  Check,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { Progress } from '@/components/ui/progress';
 
 interface ProfileData {
   name: string;
@@ -32,7 +40,9 @@ interface ProfileData {
 
 export default function Settings() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') || 'profile';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
@@ -44,6 +54,24 @@ export default function Settings() {
     specialization: '',
     clinicName: '',
     clinicAddress: '',
+  });
+
+  // Subscription data
+  const { subscription, usage, isLoading: subscriptionLoading, planName } = useSubscription();
+
+  // Fetch all plans
+  const { data: plans } = useQuery({
+    queryKey: ['subscription-plans'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('is_active', true)
+        .order('price_monthly', { ascending: true });
+      
+      if (error) throw error;
+      return data;
+    },
   });
 
   // Password change state
@@ -177,6 +205,7 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'clinic', label: 'Clinic', icon: Building },
+    { id: 'subscription', label: 'Subscription', icon: Crown },
     { id: 'security', label: 'Security', icon: Shield },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'appearance', label: 'Appearance', icon: Palette },
@@ -353,6 +382,131 @@ export default function Settings() {
                     rows={3}
                     className="medical-input resize-none"
                   />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'subscription' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Current Plan */}
+              <div className="medical-card">
+                <div className="mb-6 flex items-center gap-4">
+                  <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${
+                    planName === 'Enterprise' ? 'bg-gradient-to-br from-amber-500 to-orange-600' :
+                    planName === 'Professional' ? 'bg-gradient-to-br from-primary to-accent' :
+                    'bg-gradient-to-br from-gray-400 to-gray-600'
+                  }`}>
+                    <Crown className="h-10 w-10 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-semibold text-foreground">Current Plan: {planName}</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription ? (
+                        <>Renews on {format(new Date(subscription.current_period_end), 'MMMM dd, yyyy')}</>
+                      ) : (
+                        'No active subscription'
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Usage Stats */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-foreground">Usage This Period</h3>
+                  
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-lg border border-border p-4">
+                      <p className="text-2xl font-bold text-foreground">{usage?.patientsCount || 0}</p>
+                      <p className="text-sm text-muted-foreground">
+                        of {subscription?.plan?.patient_limit || '∞'} Patients
+                      </p>
+                      {subscription?.plan?.patient_limit && (
+                        <Progress 
+                          value={Math.min(100, ((usage?.patientsCount || 0) / subscription.plan.patient_limit) * 100)} 
+                          className="mt-2 h-1.5"
+                        />
+                      )}
+                    </div>
+                    
+                    <div className="rounded-lg border border-border p-4">
+                      <p className="text-2xl font-bold text-foreground">{usage?.prescriptionsCount || 0}</p>
+                      <p className="text-sm text-muted-foreground">Prescriptions</p>
+                    </div>
+                    
+                    <div className="rounded-lg border border-border p-4">
+                      <p className="text-2xl font-bold text-foreground">{usage?.aiAnalysisCount || 0}</p>
+                      <p className="text-sm text-muted-foreground">
+                        of {subscription?.plan?.ai_analysis_quota || '∞'} AI Analysis
+                      </p>
+                      {subscription?.plan?.ai_analysis_quota && (
+                        <Progress 
+                          value={Math.min(100, ((usage?.aiAnalysisCount || 0) / subscription.plan.ai_analysis_quota) * 100)} 
+                          className="mt-2 h-1.5"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Available Plans */}
+              <div className="medical-card">
+                <h3 className="mb-4 text-lg font-semibold text-foreground">Available Plans</h3>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {plans?.map((plan) => {
+                    const isCurrentPlan = subscription?.plan_id === plan.id;
+                    const features = Array.isArray(plan.features) ? plan.features : [];
+                    
+                    return (
+                      <div
+                        key={plan.id}
+                        className={`relative rounded-xl border p-5 transition-all ${
+                          isCurrentPlan 
+                            ? 'border-primary bg-primary/5' 
+                            : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        {isCurrentPlan && (
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                            <span className="rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground">
+                              Current Plan
+                            </span>
+                          </div>
+                        )}
+                        
+                        <h4 className="text-lg font-semibold text-foreground">{plan.name}</h4>
+                        <div className="mt-2">
+                          <span className="text-3xl font-bold text-foreground">₹{plan.price_monthly}</span>
+                          <span className="text-muted-foreground">/month</span>
+                        </div>
+                        
+                        <ul className="mt-4 space-y-2">
+                          <li className="flex items-center gap-2 text-sm">
+                            <Check className="h-4 w-4 text-primary" />
+                            <span>{plan.patient_limit ? `${plan.patient_limit} Patients` : 'Unlimited Patients'}</span>
+                          </li>
+                          <li className="flex items-center gap-2 text-sm">
+                            <Check className="h-4 w-4 text-primary" />
+                            <span>{plan.ai_analysis_quota} AI Analysis/month</span>
+                          </li>
+                          {features.slice(0, 3).map((feature: string, idx: number) => (
+                            <li key={idx} className="flex items-center gap-2 text-sm">
+                              <Check className="h-4 w-4 text-primary" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        
+                        {!isCurrentPlan && (
+                          <button className="mt-4 w-full medical-btn-secondary text-sm">
+                            <Sparkles className="h-4 w-4" />
+                            Upgrade
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

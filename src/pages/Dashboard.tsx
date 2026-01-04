@@ -4,6 +4,9 @@ import { RecentPatients } from '@/components/dashboard/RecentPatients';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { UpcomingFollowups } from '@/components/dashboard/UpcomingFollowups';
 import { TopMedicines } from '@/components/dashboard/TopMedicines';
+import { SubscriptionStatus } from '@/components/dashboard/SubscriptionStatus';
+import { SupportWidget } from '@/components/dashboard/SupportWidget';
+import { ActivityTimeline } from '@/components/dashboard/ActivityTimeline';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useDoctor } from '@/hooks/useDoctor';
 import { Users, UserPlus, CalendarCheck, FileText, AlertCircle, Loader2 } from 'lucide-react';
@@ -17,6 +20,11 @@ export default function Dashboard() {
 
   return (
     <MainLayout title="Dashboard" subtitle={`Welcome back, ${doctorName}`}>
+      {/* Subscription Status Banner */}
+      <div className="mb-6">
+        <SubscriptionStatus />
+      </div>
+
       {/* Stats Grid */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
@@ -61,16 +69,18 @@ export default function Dashboard() {
 
       {/* Main Content Grid */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Left Column - Recent Patients */}
+        {/* Left Column - Recent Patients & Activity */}
         <div className="lg:col-span-2 space-y-6">
           <RecentPatients />
+          <ActivityTimeline />
         </div>
 
-        {/* Right Column - Quick Actions & Stats */}
+        {/* Right Column - Quick Actions, Follow-ups, Support */}
         <div className="space-y-6">
           <QuickActions />
           <UpcomingFollowups />
           <TopMedicines />
+          <SupportWidget />
         </div>
       </div>
     </MainLayout>

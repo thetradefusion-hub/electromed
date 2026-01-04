@@ -223,6 +223,7 @@
     "subtitle": "अपना खाता और प्राथमिकताएं प्रबंधित करें",
     "profile": "प्रोफाइल",
     "clinic": "क्लिनिक",
+    "subscription": "सब्सक्रिप्शन",
     "security": "सुरक्षा",
     "notifications": "सूचनाएं",
     "appearance": "दिखावट",
@@ -243,7 +244,26 @@
     "light": "लाइट",
     "dark": "डार्क",
     "system": "सिस्टम",
-    "saveChanges": "परिवर्तन सहेजें"
+    "saveChanges": "परिवर्तन सहेजें",
+    "currentPlan": "वर्तमान प्लान",
+    "upgrade": "अपग्रेड",
+    "renewsOn": "नवीनीकरण तिथि",
+    "availablePlans": "उपलब्ध प्लान",
+    "patients": "मरीज़",
+    "aiAnalysis": "AI विश्लेषण",
+    "patientsLimit": "मरीज़ सीमा",
+    "unlimited": "असीमित"
+  },
+  "subscription": {
+    "basic": "बेसिक",
+    "professional": "प्रोफेशनल",
+    "enterprise": "एंटरप्राइज़",
+    "perMonth": "/महीना",
+    "currentPlan": "वर्तमान प्लान",
+    "trialActive": "ट्रायल सक्रिय",
+    "daysRemaining": "दिन शेष",
+    "patientLimitReached": "मरीज़ सीमा पूरी। अधिक जोड़ने के लिए अपग्रेड करें।",
+    "aiQuotaExhausted": "AI विश्लेषण कोटा समाप्त। अधिक के लिए अपग्रेड करें।"
   },
   "superAdmin": {
     "title": "सुपर एडमिन",
