@@ -1,5 +1,14 @@
-import { Bell, Search, User } from 'lucide-react';
-import { currentDoctor } from '@/data/mockData';
+import { Bell, Search, User, LogOut, ChevronDown } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   title: string;
@@ -7,6 +16,27 @@ interface HeaderProps {
 }
 
 export function Header({ title, subtitle }: HeaderProps) {
+  const { user, role, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/auth');
+  };
+
+  const getRoleLabel = (role: string | null) => {
+    switch (role) {
+      case 'super_admin':
+        return 'Super Admin';
+      case 'doctor':
+        return 'Doctor';
+      case 'staff':
+        return 'Staff';
+      default:
+        return 'User';
+    }
+  };
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-6">
@@ -34,16 +64,41 @@ export function Header({ title, subtitle }: HeaderProps) {
             </span>
           </button>
 
-          {/* Profile */}
-          <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-primary">
-              <User className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <div className="hidden lg:block">
-              <p className="text-sm font-medium text-foreground">{currentDoctor.name}</p>
-              <p className="text-xs text-muted-foreground">{currentDoctor.registrationNo}</p>
-            </div>
-          </div>
+          {/* Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex items-center gap-3 rounded-lg border border-border bg-card px-3 py-2 hover:bg-secondary/50 transition-colors">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full gradient-primary">
+                  <User className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-sm font-medium text-foreground">
+                    {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
+                </div>
+                <ChevronDown className="h-4 w-4 text-muted-foreground hidden lg:block" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div>
+                  <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
+                  <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <User className="mr-2 h-4 w-4" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                <LogOut className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>
