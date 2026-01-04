@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Bell, Search, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -13,9 +14,10 @@ import { useNavigate } from 'react-router-dom';
 interface HeaderProps {
   title: string;
   subtitle?: string;
+  action?: ReactNode;
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
+export function Header({ title, subtitle, action }: HeaderProps) {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -40,9 +42,12 @@ export function Header({ title, subtitle }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center justify-between px-6">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground">{title}</h1>
-          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">{title}</h1>
+            {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+          </div>
+          {action && <div className="ml-4">{action}</div>}
         </div>
 
         <div className="flex items-center gap-4">

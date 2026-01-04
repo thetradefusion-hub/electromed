@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { usePatients, Patient } from '@/hooks/usePatients';
-import { Search, Plus, User, Phone, MapPin, Calendar, MoreVertical, FileText, Stethoscope, Trash2, Edit, Loader2 } from 'lucide-react';
+import { exportPatientsToCSV } from '@/utils/exportUtils';
+import { Search, Plus, User, Phone, MapPin, Calendar, MoreVertical, FileText, Stethoscope, Trash2, Edit, Loader2, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -136,6 +138,17 @@ export default function Patients() {
             </button>
           </div>
         </div>
+        <button
+          onClick={() => {
+            exportPatientsToCSV(patients);
+            toast.success('Patients exported to CSV');
+          }}
+          disabled={patients.length === 0}
+          className="medical-btn-secondary"
+        >
+          <Download className="h-4 w-4" />
+          Export CSV
+        </button>
         <Link
           to="/patients/new"
           className="medical-btn-primary"

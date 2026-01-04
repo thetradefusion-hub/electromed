@@ -1,6 +1,8 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useDoctor } from '@/hooks/useDoctor';
+import { exportAnalyticsToPDF } from '@/utils/exportUtils';
 import {
   Users,
   FileText,
@@ -10,6 +12,7 @@ import {
   PieChart,
   Loader2,
   Pill,
+  Download,
 } from 'lucide-react';
 import {
   LineChart,
@@ -22,16 +25,37 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
+import { toast } from 'sonner';
 
 export default function Analytics() {
   const { data: analytics, isLoading } = useAnalytics();
+  const { doctorInfo } = useDoctor();
 
   const followUpRate = analytics && analytics.totalPatients > 0
     ? Math.round((analytics.totalPrescriptions / analytics.totalPatients) * 100)
     : 0;
 
+  const handleExportPDF = () => {
+    if (!analytics) return;
+    exportAnalyticsToPDF(analytics, doctorInfo?.name || 'Doctor');
+    toast.success('Analytics report exported to PDF');
+  };
+
   return (
-    <MainLayout title="Analytics" subtitle="Track your clinic performance and trends">
+    <MainLayout 
+      title="Analytics" 
+      subtitle="Track your clinic performance and trends"
+      action={
+        <button
+          onClick={handleExportPDF}
+          disabled={isLoading || !analytics}
+          className="medical-btn-secondary"
+        >
+          <Download className="h-4 w-4" />
+          Export PDF
+        </button>
+      }
+    >
       {/* Stats Grid */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard

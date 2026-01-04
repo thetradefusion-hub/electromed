@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { usePrescriptions, Prescription } from '@/hooks/usePrescriptions';
 import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
+import { exportPrescriptionsToCSV } from '@/utils/exportUtils';
 import { Search, FileText, Download, Printer, Eye, Calendar, User, Pill, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function Prescriptions() {
   const { prescriptions, loading, doctorInfo } = usePrescriptions();
@@ -61,15 +63,28 @@ export default function Prescriptions() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Prescriptions List */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by patient name or prescription ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="medical-input pl-10"
-            />
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search by patient name or prescription ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="medical-input pl-10"
+              />
+            </div>
+            <button
+              onClick={() => {
+                exportPrescriptionsToCSV(prescriptions);
+                toast.success('Prescriptions exported to CSV');
+              }}
+              disabled={prescriptions.length === 0}
+              className="medical-btn-secondary"
+            >
+              <Download className="h-4 w-4" />
+              Export
+            </button>
           </div>
 
           {filteredPrescriptions.length === 0 ? (
