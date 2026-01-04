@@ -1,25 +1,44 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, ArrowLeft, Save } from 'lucide-react';
-import { toast } from 'sonner';
+import { UserPlus, ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { usePatients } from '@/hooks/usePatients';
 
 export default function NewPatient() {
   const navigate = useNavigate();
+  const { createPatient, doctorId } = usePatients();
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     age: '',
     gender: 'male',
     mobile: '',
     address: '',
-    caseType: 'new',
+    case_type: 'new',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In production, this would save to database
-    toast.success('Patient registered successfully!');
-    navigate('/patients');
+    
+    if (!doctorId) {
+      return;
+    }
+
+    setSubmitting(true);
+    const success = await createPatient({
+      name: formData.name,
+      age: parseInt(formData.age, 10),
+      gender: formData.gender,
+      mobile: formData.mobile,
+      address: formData.address || undefined,
+      case_type: formData.case_type,
+    });
+
+    setSubmitting(false);
+    
+    if (success) {
+      navigate('/patients');
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -137,9 +156,9 @@ export default function NewPatient() {
                 <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"
-                    name="caseType"
+                    name="case_type"
                     value="new"
-                    checked={formData.caseType === 'new'}
+                    checked={formData.case_type === 'new'}
                     onChange={handleChange}
                     className="h-4 w-4 border-border text-primary focus:ring-primary"
                   />
@@ -148,9 +167,9 @@ export default function NewPatient() {
                 <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"
-                    name="caseType"
+                    name="case_type"
                     value="old"
-                    checked={formData.caseType === 'old'}
+                    checked={formData.case_type === 'old'}
                     onChange={handleChange}
                     className="h-4 w-4 border-border text-primary focus:ring-primary"
                   />
@@ -167,8 +186,16 @@ export default function NewPatient() {
               >
                 Cancel
               </button>
-              <button type="submit" className="medical-btn-primary">
-                <Save className="h-4 w-4" />
+              <button 
+                type="submit" 
+                className="medical-btn-primary"
+                disabled={submitting || !doctorId}
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
                 Register Patient
               </button>
             </div>
