@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { usePatients, Patient } from '@/hooks/usePatients';
 import { exportPatientsToCSV } from '@/utils/exportUtils';
-import { Search, Plus, User, Phone, MapPin, Calendar, MoreVertical, FileText, Stethoscope, Trash2, Edit, Loader2, Download } from 'lucide-react';
-import { format } from 'date-fns';
+import { PatientSearchFilters, PatientFilters, defaultFilters } from '@/components/patients/PatientSearchFilters';
+import { Plus, User, Phone, MapPin, Calendar, MoreVertical, FileText, Stethoscope, Trash2, Edit, Loader2, Download } from 'lucide-react';
+import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -32,20 +33,60 @@ import {
 
 export default function Patients() {
   const { patients, loading, deletePatient, updatePatient } = usePatients();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'new' | 'old'>('all');
+  const [filters, setFilters] = useState<PatientFilters>(defaultFilters);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [editForm, setEditForm] = useState({ name: '', age: '', mobile: '', address: '' });
 
-  const filteredPatients = patients.filter((patient) => {
-    const matchesSearch =
-      patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.patient_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      patient.mobile.includes(searchQuery);
-    const matchesFilter = filterType === 'all' || patient.case_type === filterType;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredPatients = useMemo(() => {
+    return patients.filter((patient) => {
+      // Text search
+      const searchLower = filters.searchQuery.toLowerCase();
+      const matchesSearch =
+        !filters.searchQuery ||
+        patient.name.toLowerCase().includes(searchLower) ||
+        patient.patient_id.toLowerCase().includes(searchLower) ||
+        patient.mobile.includes(filters.searchQuery) ||
+        (patient.address?.toLowerCase().includes(searchLower) ?? false);
+
+      // Case type filter
+      const matchesCaseType =
+        filters.caseType === 'all' || patient.case_type === filters.caseType;
+
+      // Gender filter
+      const matchesGender =
+        filters.gender === 'all' || patient.gender.toLowerCase() === filters.gender;
+
+      // Age range filter
+      const matchesAge =
+        (filters.ageRange.min === null || patient.age >= filters.ageRange.min) &&
+        (filters.ageRange.max === null || patient.age <= filters.ageRange.max);
+
+      // Date range filter
+      const visitDate = new Date(patient.visit_date);
+      const matchesDateFrom =
+        !filters.dateRange.from ||
+        isAfter(visitDate, startOfDay(filters.dateRange.from)) ||
+        visitDate.toDateString() === filters.dateRange.from.toDateString();
+      const matchesDateTo =
+        !filters.dateRange.to ||
+        isBefore(visitDate, endOfDay(filters.dateRange.to)) ||
+        visitDate.toDateString() === filters.dateRange.to.toDateString();
+
+      return (
+        matchesSearch &&
+        matchesCaseType &&
+        matchesGender &&
+        matchesAge &&
+        matchesDateFrom &&
+        matchesDateTo
+      );
+    });
+  }, [patients, filters]);
+
+  const handleResetFilters = () => {
+    setFilters(defaultFilters);
+  };
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -89,73 +130,37 @@ export default function Patients() {
 
   return (
     <MainLayout title="Patients" subtitle="Manage your patient records">
-      {/* Actions Bar */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 items-center gap-3">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search by name, ID, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="medical-input pl-10"
-            />
-          </div>
+      {/* Search & Filters */}
+      <div className="mb-6 space-y-4">
+        <PatientSearchFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          onReset={handleResetFilters}
+        />
+        
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {filteredPatients.length} of {patients.length} patients
+          </p>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setFilterType('all')}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-all',
-                filterType === 'all'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              )}
+              onClick={() => {
+                exportPatientsToCSV(filteredPatients);
+                toast.success('Patients exported to CSV');
+              }}
+              disabled={filteredPatients.length === 0}
+              className="medical-btn-secondary"
             >
-              All
+              <Download className="h-4 w-4" />
+              Export CSV
             </button>
-            <button
-              onClick={() => setFilterType('new')}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-all',
-                filterType === 'new'
-                  ? 'bg-accent text-accent-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              )}
-            >
-              New
-            </button>
-            <button
-              onClick={() => setFilterType('old')}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-all',
-                filterType === 'old'
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-              )}
-            >
-              Follow-up
-            </button>
+            <Link to="/patients/new" className="medical-btn-primary">
+              <Plus className="h-4 w-4" />
+              Add Patient
+            </Link>
           </div>
         </div>
-        <button
-          onClick={() => {
-            exportPatientsToCSV(patients);
-            toast.success('Patients exported to CSV');
-          }}
-          disabled={patients.length === 0}
-          className="medical-btn-secondary"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
-        <Link
-          to="/patients/new"
-          className="medical-btn-primary"
-        >
-          <Plus className="h-4 w-4" />
-          Add Patient
-        </Link>
       </div>
 
       {/* Patients Grid */}
@@ -259,8 +264,8 @@ export default function Patients() {
           </div>
           <h3 className="mb-1 text-lg font-semibold text-foreground">No patients found</h3>
           <p className="text-sm text-muted-foreground">
-            {searchQuery
-              ? 'Try adjusting your search query'
+            {filters.searchQuery
+              ? 'Try adjusting your search or filters'
               : 'Start by adding your first patient'}
           </p>
         </div>
