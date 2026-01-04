@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
-import { Bell, Search, User, LogOut, ChevronDown } from 'lucide-react';
+import { Search, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,12 +63,7 @@ export function Header({ title, subtitle, action }: HeaderProps) {
           </div>
 
           {/* Notifications */}
-          <button className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
-              3
-            </span>
-          </button>
+          <NotificationsDropdown />
 
           {/* Profile Dropdown */}
           <DropdownMenu>
