@@ -18,35 +18,37 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 interface NavItem {
   icon: React.ElementType;
-  label: string;
+  labelKey: string;
   path: string;
   roles?: ('super_admin' | 'doctor' | 'staff')[];
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-  { icon: Users, label: 'Patients', path: '/patients' },
-  { icon: CalendarCheck, label: 'Appointments', path: '/appointments' },
-  { icon: Stethoscope, label: 'Consultation', path: '/consultation', roles: ['super_admin', 'doctor'] },
-  { icon: FileText, label: 'Prescriptions', path: '/prescriptions', roles: ['super_admin', 'doctor'] },
-  { icon: HeartPulse, label: 'Symptoms', path: '/symptoms', roles: ['super_admin', 'doctor'] },
-  { icon: Pill, label: 'Medicines', path: '/medicines', roles: ['super_admin', 'doctor'] },
-  { icon: BookOpen, label: 'Rules Engine', path: '/rules', roles: ['super_admin', 'doctor'] },
-  { icon: Activity, label: 'Analytics', path: '/analytics', roles: ['super_admin', 'doctor'] },
-  { icon: Shield, label: 'Super Admin', path: '/admin', roles: ['super_admin'] },
+  { icon: LayoutDashboard, labelKey: 'nav.dashboard', path: '/' },
+  { icon: Users, labelKey: 'nav.patients', path: '/patients' },
+  { icon: CalendarCheck, labelKey: 'nav.appointments', path: '/appointments' },
+  { icon: Stethoscope, labelKey: 'nav.consultation', path: '/consultation', roles: ['super_admin', 'doctor'] },
+  { icon: FileText, labelKey: 'nav.prescriptions', path: '/prescriptions', roles: ['super_admin', 'doctor'] },
+  { icon: HeartPulse, labelKey: 'nav.symptoms', path: '/symptoms', roles: ['super_admin', 'doctor'] },
+  { icon: Pill, labelKey: 'nav.medicines', path: '/medicines', roles: ['super_admin', 'doctor'] },
+  { icon: BookOpen, labelKey: 'nav.rulesEngine', path: '/rules', roles: ['super_admin', 'doctor'] },
+  { icon: Activity, labelKey: 'nav.analytics', path: '/analytics', roles: ['super_admin', 'doctor'] },
+  { icon: Shield, labelKey: 'nav.superAdmin', path: '/admin', roles: ['super_admin'] },
 ];
 
 const bottomNavItems: NavItem[] = [
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Settings, labelKey: 'nav.settings', path: '/settings' },
 ];
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { role, signOut } = useAuth();
+  const { t } = useTranslation();
 
   const visibleNavItems = navItems.filter(
     (item) => !item.roles || (role && item.roles.includes(role))
@@ -68,8 +70,8 @@ export function Sidebar() {
                 <Stethoscope className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-sm font-bold text-sidebar-foreground">ElectroMed</h1>
-                <p className="text-xs text-sidebar-foreground/60">Homoeopathy Clinic</p>
+                <h1 className="text-sm font-bold text-sidebar-foreground">{t('sidebar.clinicName')}</h1>
+                <p className="text-xs text-sidebar-foreground/60">{t('sidebar.clinicSubtitle')}</p>
               </div>
             </div>
           )}
@@ -107,7 +109,7 @@ export function Sidebar() {
                 )}
               >
                 <item.icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-sidebar-primary-foreground')} />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{t(item.labelKey)}</span>}
               </Link>
             );
           })}
@@ -129,7 +131,7 @@ export function Sidebar() {
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && <span>{t(item.labelKey)}</span>}
               </Link>
             );
           })}
@@ -138,7 +140,7 @@ export function Sidebar() {
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span>{t('nav.logout')}</span>}
           </button>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Search, User, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { NotificationsDropdown } from '@/components/notifications/NotificationsDropdown';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   title: string;
@@ -21,6 +23,7 @@ interface HeaderProps {
 export function Header({ title, subtitle, action }: HeaderProps) {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSignOut = async () => {
     await signOut();
@@ -30,13 +33,13 @@ export function Header({ title, subtitle, action }: HeaderProps) {
   const getRoleLabel = (role: string | null) => {
     switch (role) {
       case 'super_admin':
-        return 'Super Admin';
+        return t('roles.superAdmin');
       case 'doctor':
-        return 'Doctor';
+        return t('roles.doctor');
       case 'staff':
-        return 'Staff';
+        return t('roles.staff');
       default:
-        return 'User';
+        return t('roles.user');
     }
   };
 
@@ -57,10 +60,13 @@ export function Header({ title, subtitle, action }: HeaderProps) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search patients, prescriptions..."
+              placeholder={t('header.searchPlaceholder')}
               className="h-10 w-64 rounded-lg border border-input bg-background pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
             />
           </div>
+
+          {/* Language Switcher */}
+          <LanguageSwitcher />
 
           {/* Notifications */}
           <NotificationsDropdown />
@@ -74,7 +80,7 @@ export function Header({ title, subtitle, action }: HeaderProps) {
                 </div>
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-medium text-foreground">
-                    {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
+                    {user?.user_metadata?.name || user?.email?.split('@')[0] || t('roles.user')}
                   </p>
                   <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
                 </div>
@@ -84,19 +90,19 @@ export function Header({ title, subtitle, action }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
                 <div>
-                  <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
+                  <p className="font-medium">{user?.user_metadata?.name || t('roles.user')}</p>
                   <p className="text-xs text-muted-foreground font-normal">{user?.email}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <User className="mr-2 h-4 w-4" />
-                Settings
+                {t('nav.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
                 <LogOut className="mr-2 h-4 w-4" />
-                Sign Out
+                {t('auth.signOut')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
