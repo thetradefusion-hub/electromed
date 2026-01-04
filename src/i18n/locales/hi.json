@@ -67,7 +67,8 @@
     "superAdmin": "सुपर एडमिन",
     "saasAdmin": "SaaS एडमिन",
     "settings": "सेटिंग्स",
-    "logout": "लॉगआउट"
+    "logout": "लॉगआउट",
+    "more": "और"
   },
   "header": {
     "searchPlaceholder": "मरीज़, प्रिस्क्रिप्शन खोजें...",

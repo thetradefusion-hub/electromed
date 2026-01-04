@@ -8,8 +8,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Stethoscope, Loader2 } from 'lucide-react';
+import { Stethoscope, Loader2, ArrowLeft } from 'lucide-react';
 import { z } from 'zod';
+import { Link } from 'react-router-dom';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -179,28 +180,37 @@ const Auth = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/10 p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-accent/5 p-4 safe-area-top safe-area-bottom">
+      {/* Background decorations */}
+      <div className="fixed top-20 -left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
+      <div className="fixed bottom-20 -right-20 w-72 h-72 bg-accent/20 rounded-full blur-3xl" />
+      
+      <Card className="w-full max-w-lg relative rounded-2xl border-border/50 shadow-xl">
+        {/* Back to landing */}
+        <Link to="/landing" className="absolute top-4 left-4 touch-target rounded-xl hover:bg-secondary flex items-center justify-center">
+          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+        </Link>
+        
+        <CardHeader className="text-center pt-12 pb-4">
           <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-              <Stethoscope className="h-8 w-8 text-primary" />
+            <div className="h-16 w-16 rounded-2xl gradient-primary flex items-center justify-center shadow-glow-primary">
+              <Stethoscope className="h-8 w-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Electro Homoeopathy Clinic</CardTitle>
-          <CardDescription>Clinical Management & Prescription Software</CardDescription>
+          <CardTitle className="text-xl sm:text-2xl font-bold">ElectroMed</CardTitle>
+          <CardDescription className="text-sm">Clinical Management & Prescription Software</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 rounded-xl h-11">
+              <TabsTrigger value="login" className="rounded-lg">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="rounded-lg">Sign Up</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
+                  <Label htmlFor="login-email" className="text-sm">Email</Label>
                   <Input
                     id="login-email"
                     type="email"
@@ -208,13 +218,14 @@ const Auth = () => {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     required
+                    className="h-12 rounded-xl"
                   />
                   {errors.login_email && (
-                    <p className="text-sm text-destructive">{errors.login_email}</p>
+                    <p className="text-xs text-destructive">{errors.login_email}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
+                  <Label htmlFor="login-password" className="text-sm">Password</Label>
                   <Input
                     id="login-password"
                     type="password"
@@ -222,12 +233,13 @@ const Auth = () => {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     required
+                    className="h-12 rounded-xl"
                   />
                   {errors.login_password && (
-                    <p className="text-sm text-destructive">{errors.login_password}</p>
+                    <p className="text-xs text-destructive">{errors.login_password}</p>
                   )}
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 rounded-xl text-base" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -242,24 +254,25 @@ const Auth = () => {
 
             <TabsContent value="signup">
               <form onSubmit={handleSignup} className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Full Name *</Label>
+                    <Label htmlFor="signup-name" className="text-sm">Full Name *</Label>
                     <Input
                       id="signup-name"
                       placeholder="Dr. John Doe"
                       value={signupName}
                       onChange={(e) => setSignupName(e.target.value)}
                       required
+                      className="h-11 rounded-xl"
                     />
                     {errors.signup_name && (
-                      <p className="text-sm text-destructive">{errors.signup_name}</p>
+                      <p className="text-xs text-destructive">{errors.signup_name}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-role">Role *</Label>
+                    <Label htmlFor="signup-role" className="text-sm">Role *</Label>
                     <Select value={signupRole} onValueChange={(v) => setSignupRole(v as 'doctor' | 'staff')}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11 rounded-xl">
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
@@ -271,7 +284,7 @@ const Auth = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email *</Label>
+                  <Label htmlFor="signup-email" className="text-sm">Email *</Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -279,15 +292,16 @@ const Auth = () => {
                     value={signupEmail}
                     onChange={(e) => setSignupEmail(e.target.value)}
                     required
+                    className="h-11 rounded-xl"
                   />
                   {errors.signup_email && (
-                    <p className="text-sm text-destructive">{errors.signup_email}</p>
+                    <p className="text-xs text-destructive">{errors.signup_email}</p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password *</Label>
+                    <Label htmlFor="signup-password" className="text-sm">Password *</Label>
                     <Input
                       id="signup-password"
                       type="password"
@@ -295,64 +309,69 @@ const Auth = () => {
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       required
+                      className="h-11 rounded-xl"
                     />
                     {errors.signup_password && (
-                      <p className="text-sm text-destructive">{errors.signup_password}</p>
+                      <p className="text-xs text-destructive">{errors.signup_password}</p>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Phone</Label>
+                    <Label htmlFor="signup-phone" className="text-sm">Phone</Label>
                     <Input
                       id="signup-phone"
                       type="tel"
                       placeholder="+91 9876543210"
                       value={signupPhone}
                       onChange={(e) => setSignupPhone(e.target.value)}
+                      className="h-11 rounded-xl"
                     />
                   </div>
                 </div>
 
                 {signupRole === 'doctor' && (
                   <>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
-                        <Label htmlFor="registration-no">Registration No. *</Label>
+                        <Label htmlFor="registration-no" className="text-sm">Reg. No. *</Label>
                         <Input
                           id="registration-no"
                           placeholder="MED/2024/001"
                           value={registrationNo}
                           onChange={(e) => setRegistrationNo(e.target.value)}
+                          className="h-11 rounded-xl"
                         />
                         {errors.signup_registration_no && (
-                          <p className="text-sm text-destructive">{errors.signup_registration_no}</p>
+                          <p className="text-xs text-destructive">{errors.signup_registration_no}</p>
                         )}
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="qualification">Qualification *</Label>
+                        <Label htmlFor="qualification" className="text-sm">Qualification *</Label>
                         <Input
                           id="qualification"
                           placeholder="BHMS, MD"
                           value={qualification}
                           onChange={(e) => setQualification(e.target.value)}
+                          className="h-11 rounded-xl"
                         />
                         {errors.signup_qualification && (
-                          <p className="text-sm text-destructive">{errors.signup_qualification}</p>
+                          <p className="text-xs text-destructive">{errors.signup_qualification}</p>
                         )}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="specialization">Specialization</Label>
+                      <Label htmlFor="specialization" className="text-sm">Specialization</Label>
                       <Input
                         id="specialization"
                         placeholder="Electro Homoeopathy"
                         value={specialization}
                         onChange={(e) => setSpecialization(e.target.value)}
+                        className="h-11 rounded-xl"
                       />
                     </div>
                   </>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full h-12 rounded-xl text-base" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -366,7 +385,7 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </CardContent>
-        <CardFooter className="text-center text-xs text-muted-foreground">
+        <CardFooter className="text-center text-xs text-muted-foreground px-4 sm:px-6 pb-6">
           <p className="w-full">
             By continuing, you agree to our Terms of Service and Privacy Policy.
             <br />

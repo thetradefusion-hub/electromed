@@ -58,27 +58,27 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 ease-in-out',
+        'fixed left-0 top-0 z-40 h-screen bg-sidebar transition-all duration-300 ease-in-out hidden md:block',
         collapsed ? 'w-20' : 'w-64'
       )}
     >
       <div className="flex h-full flex-col">
         {/* Logo */}
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <div className="flex h-16 items-center justify-between border-b border-sidebar-border/30 px-4">
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-                <Stethoscope className="h-5 w-5 text-primary-foreground" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
+                <Stethoscope className="h-5 w-5 text-sidebar-foreground" />
               </div>
               <div>
                 <h1 className="text-sm font-bold text-sidebar-foreground">{t('sidebar.clinicName')}</h1>
-                <p className="text-xs text-sidebar-foreground/60">{t('sidebar.clinicSubtitle')}</p>
+                <p className="text-xs text-sidebar-foreground/70">{t('sidebar.clinicSubtitle')}</p>
               </div>
             </div>
           )}
           {collapsed && (
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg gradient-primary">
-              <Stethoscope className="h-5 w-5 text-primary-foreground" />
+            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
+              <Stethoscope className="h-5 w-5 text-sidebar-foreground" />
             </div>
           )}
         </div>
@@ -86,7 +86,7 @@ export function Sidebar() {
         {/* Toggle Button */}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-sidebar-foreground shadow-sm transition-colors hover:bg-sidebar-accent"
+          className="absolute -right-3 top-20 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-all hover:bg-secondary"
         >
           {collapsed ? (
             <ChevronRight className="h-3.5 w-3.5" />
@@ -103,13 +103,13 @@ export function Sidebar() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
               >
-                <item.icon className={cn('h-5 w-5 flex-shrink-0', isActive && 'text-sidebar-primary-foreground')} />
+                <item.icon className={cn('h-5 w-5 flex-shrink-0')} />
                 {!collapsed && <span>{t(item.labelKey)}</span>}
               </Link>
             );
@@ -117,7 +117,7 @@ export function Sidebar() {
         </nav>
 
         {/* Bottom Navigation */}
-        <div className="border-t border-sidebar-border p-3 space-y-1">
+        <div className="border-t border-sidebar-border/30 p-3 space-y-1">
           {bottomNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
@@ -125,10 +125,10 @@ export function Sidebar() {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                  'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                   isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+                    : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -138,7 +138,7 @@ export function Sidebar() {
           })}
           <button
             onClick={signOut}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-300 transition-all duration-200 hover:bg-red-500/10 hover:text-red-200"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>{t('nav.logout')}</span>}

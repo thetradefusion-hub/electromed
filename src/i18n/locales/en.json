@@ -67,7 +67,8 @@
     "superAdmin": "Super Admin",
     "saasAdmin": "SaaS Admin",
     "settings": "Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "more": "More"
   },
   "header": {
     "searchPlaceholder": "Search patients, prescriptions...",

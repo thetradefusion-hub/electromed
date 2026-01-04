@@ -21,62 +21,62 @@ export default function Dashboard() {
   return (
     <MainLayout title="Dashboard" subtitle={`Welcome back, ${doctorName}`}>
       {/* Subscription Status Banner */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <SubscriptionStatus />
       </div>
 
       {/* Stats Grid */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <StatCard
           title="Total Patients"
-          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.totalPatients ?? 0}
-          subtitle="All time registrations"
+          value={isLoading ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> : stats?.totalPatients ?? 0}
+          subtitle="All time"
           icon={Users}
           variant="primary"
         />
         <StatCard
           title="Today's Patients"
-          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.todayPatients ?? 0}
-          subtitle="Consultations today"
+          value={isLoading ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> : stats?.todayPatients ?? 0}
+          subtitle="Consultations"
           icon={UserPlus}
           variant="accent"
         />
         <StatCard
-          title="Pending Follow-ups"
-          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.pendingFollowUps ?? 0}
-          subtitle="Scheduled this week"
+          title="Follow-ups"
+          value={isLoading ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> : stats?.pendingFollowUps ?? 0}
+          subtitle="This week"
           icon={CalendarCheck}
           variant="warning"
         />
         <StatCard
           title="Prescriptions"
-          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : stats?.totalPrescriptions ?? 0}
-          subtitle="Total generated"
+          value={isLoading ? <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" /> : stats?.totalPrescriptions ?? 0}
+          subtitle="Total"
           icon={FileText}
         />
       </div>
 
       {/* Disclaimer Banner */}
-      <div className="mb-6 flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-4">
-        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-warning" />
+      <div className="mb-4 sm:mb-6 flex items-start gap-3 rounded-xl border border-warning/30 bg-warning/5 p-3 sm:p-4">
+        <AlertCircle className="mt-0.5 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-warning" />
         <div>
-          <p className="text-sm font-medium text-foreground">Medical Disclaimer</p>
-          <p className="text-xs text-muted-foreground">
-            This software provides medicine suggestions based on symptoms and predefined rules. The final prescription decision lies with the qualified doctor. Always verify suggestions before prescribing.
+          <p className="text-xs sm:text-sm font-medium text-foreground">Medical Disclaimer</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
+            This software provides suggestions based on symptoms. Final prescription decision lies with the doctor.
           </p>
         </div>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Left Column - Recent Patients & Activity */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6">
           <RecentPatients />
           <ActivityTimeline />
         </div>
 
         {/* Right Column - Quick Actions, Follow-ups, Support */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <QuickActions />
           <UpcomingFollowups />
           <TopMedicines />

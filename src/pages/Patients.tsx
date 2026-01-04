@@ -3,7 +3,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { usePatients, Patient } from '@/hooks/usePatients';
 import { exportPatientsToCSV } from '@/utils/exportUtils';
 import { PatientSearchFilters, PatientFilters, defaultFilters } from '@/components/patients/PatientSearchFilters';
-import { Plus, User, Phone, MapPin, Calendar, MoreVertical, FileText, Stethoscope, Trash2, Edit, Loader2, Download, History } from 'lucide-react';
+import { Plus, User, Phone, MapPin, Calendar, MoreVertical, FileText, Stethoscope, Trash2, Edit, Loader2, Download, History, Search } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Link } from 'react-router-dom';
@@ -37,6 +37,7 @@ export default function Patients() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [editForm, setEditForm] = useState({ name: '', age: '', mobile: '', address: '' });
+  const [showFilters, setShowFilters] = useState(false);
 
   const filteredPatients = useMemo(() => {
     return patients.filter((patient) => {
@@ -130,60 +131,75 @@ export default function Patients() {
 
   return (
     <MainLayout title="Patients" subtitle="Manage your patient records">
-      {/* Search & Filters */}
-      <div className="mb-6 space-y-4">
+      {/* Mobile Search */}
+      <div className="mb-4 sm:hidden">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search patients..."
+            value={filters.searchQuery}
+            onChange={(e) => setFilters({ ...filters, searchQuery: e.target.value })}
+            className="w-full h-11 rounded-xl border border-input bg-background pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </div>
+      </div>
+
+      {/* Desktop Search & Filters */}
+      <div className="hidden sm:block mb-6 space-y-4">
         <PatientSearchFilters
           filters={filters}
           onFiltersChange={setFilters}
           onReset={handleResetFilters}
         />
+      </div>
         
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredPatients.length} of {patients.length} patients
-          </p>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                exportPatientsToCSV(filteredPatients);
-                toast.success('Patients exported to CSV');
-              }}
-              disabled={filteredPatients.length === 0}
-              className="medical-btn-secondary"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </button>
-            <Link to="/patients/new" className="medical-btn-primary">
-              <Plus className="h-4 w-4" />
-              Add Patient
-            </Link>
-          </div>
+      {/* Action Buttons */}
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <p className="text-xs sm:text-sm text-muted-foreground">
+          {filteredPatients.length} of {patients.length} patients
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              exportPatientsToCSV(filteredPatients);
+              toast.success('Patients exported to CSV');
+            }}
+            disabled={filteredPatients.length === 0}
+            className="medical-btn-secondary hidden sm:flex"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+          <Link to="/patients/new" className="medical-btn-primary">
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Add Patient</span>
+            <span className="sm:hidden">Add</span>
+          </Link>
         </div>
       </div>
 
       {/* Patients Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredPatients.map((patient, index) => (
           <div
             key={patient.id}
             className="medical-card group animate-fade-in"
-            style={{ animationDelay: `${index * 50}ms` }}
+            style={{ animationDelay: `${index * 30}ms` }}
           >
-            <div className="mb-4 flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-6 w-6 text-primary" />
+            <div className="mb-3 sm:mb-4 flex items-start justify-between">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <User className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">{patient.name}</h3>
-                  <p className="text-sm text-muted-foreground">{patient.patient_id}</p>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">{patient.name}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground">{patient.patient_id}</p>
                 </div>
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+                  <button className="touch-target flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
                     <MoreVertical className="h-4 w-4" />
                   </button>
                 </DropdownMenuTrigger>
@@ -203,32 +219,32 @@ export default function Patients() {
               </DropdownMenu>
             </div>
 
-            <div className="mb-4 space-y-2 text-sm">
+            <div className="mb-3 sm:mb-4 space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
               <div className="flex items-center gap-2 text-muted-foreground">
-                <span className="font-medium text-foreground">{patient.age} years</span>
+                <span className="font-medium text-foreground">{patient.age}y</span>
                 <span>•</span>
                 <span className="capitalize">{patient.gender}</span>
               </div>
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="h-4 w-4" />
+                <Phone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 <span>{patient.mobile}</span>
               </div>
               {patient.address && (
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
                   <span className="truncate">{patient.address}</span>
                 </div>
               )}
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Calendar className="h-4 w-4" />
-                <span>Last visit: {format(new Date(patient.visit_date), 'dd MMM yyyy')}</span>
+                <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span>Last: {format(new Date(patient.visit_date), 'dd MMM yyyy')}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-border pt-4">
+            <div className="flex items-center justify-between border-t border-border pt-3 sm:pt-4">
               <span
                 className={cn(
-                  'medical-badge',
+                  'medical-badge text-[10px] sm:text-xs',
                   patient.case_type === 'new'
                     ? 'bg-accent/10 text-accent'
                     : 'bg-primary/10 text-primary'
@@ -236,26 +252,26 @@ export default function Patients() {
               >
                 {patient.case_type === 'new' ? 'New Case' : 'Follow-up'}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <Link
                   to={`/patients/history?patient=${patient.id}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  className="touch-target flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   title="View History"
                 >
                   <History className="h-4 w-4" />
                 </Link>
                 <Link
                   to={`/prescriptions?patient=${patient.id}`}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                  className="touch-target flex items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                   title="View Prescriptions"
                 >
                   <FileText className="h-4 w-4" />
                 </Link>
                 <Link
                   to={`/consultation?patient=${patient.id}`}
-                  className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-all hover:opacity-90"
+                  className="flex items-center gap-1 sm:gap-1.5 rounded-lg bg-primary px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-primary-foreground transition-all hover:opacity-90"
                 >
-                  <Stethoscope className="h-3.5 w-3.5" />
+                  <Stethoscope className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                   Consult
                 </Link>
               </div>
@@ -266,13 +282,13 @@ export default function Patients() {
 
       {filteredPatients.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-secondary">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary">
             <User className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="mb-1 text-lg font-semibold text-foreground">No patients found</h3>
           <p className="text-sm text-muted-foreground">
             {filters.searchQuery
-              ? 'Try adjusting your search or filters'
+              ? 'Try adjusting your search'
               : 'Start by adding your first patient'}
           </p>
         </div>
@@ -280,7 +296,7 @@ export default function Patients() {
 
       {/* Delete Confirmation */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl mx-4">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Patient</AlertDialogTitle>
             <AlertDialogDescription>
@@ -288,8 +304,8 @@ export default function Patients() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogCancel className="rounded-xl">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -298,7 +314,7 @@ export default function Patients() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editPatient} onOpenChange={() => setEditPatient(null)}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl mx-4 max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Patient</DialogTitle>
           </DialogHeader>
@@ -313,7 +329,7 @@ export default function Patients() {
                 required
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1.5 block text-sm font-medium">Age</label>
                 <input
@@ -344,12 +360,12 @@ export default function Patients() {
                 rows={2}
               />
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => setEditPatient(null)} className="medical-btn-secondary">
                 Cancel
               </button>
               <button type="submit" className="medical-btn-primary">
-                Save Changes
+                Save
               </button>
             </div>
           </form>
