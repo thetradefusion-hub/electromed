@@ -18,12 +18,16 @@ import {
   ChevronDown,
   ChevronUp,
   ArrowLeft,
-  AlertCircle
+  AlertCircle,
+  Printer,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Json } from '@/integrations/supabase/types';
+import { generatePatientHistoryPDF } from '@/utils/generatePatientHistoryPDF';
+import { toast } from 'sonner';
 
 interface Patient {
   id: string;
@@ -88,6 +92,14 @@ export default function PatientHistory() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [doctorInfo, setDoctorInfo] = useState<{
+    name: string;
+    clinic_name: string | null;
+    clinic_address: string | null;
+    qualification: string;
+    registration_no: string;
+    specialization: string;
+  } | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,11 +143,45 @@ export default function PatientHistory() {
         setPrescriptions(parsed);
       }
 
+      // Fetch doctor info for PDF
+      const { data: doctorData } = await supabase
+        .from('doctors')
+        .select('clinic_name, clinic_address, qualification, registration_no, specialization')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (doctorData) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        setDoctorInfo({
+          ...doctorData,
+          name: profileData?.name || 'Doctor',
+        });
+      }
+
       setLoading(false);
     };
 
     fetchData();
   }, [patientId, user]);
+
+  const handleDownloadPDF = () => {
+    if (!patient || !doctorInfo) {
+      toast.error('Unable to generate report. Please try again.');
+      return;
+    }
+
+    generatePatientHistoryPDF(patient, prescriptions, doctorInfo);
+    toast.success('Patient history report downloaded');
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedItems((prev) => {
@@ -292,6 +338,14 @@ export default function PatientHistory() {
               View All Prescriptions
             </Button>
           </Link>
+          <Button variant="outline" className="gap-2" onClick={handleDownloadPDF}>
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Button>
+          <Button variant="outline" className="gap-2 print:hidden" onClick={handlePrint}>
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
         </div>
       </div>
 

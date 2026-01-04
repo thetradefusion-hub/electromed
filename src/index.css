@@ -236,3 +236,47 @@
     border-radius: 3px;
   }
 }
+
+/* Print Styles */
+@media print {
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Hide navigation and sidebar */
+  aside,
+  nav,
+  header button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Optimize main content for print */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure cards print nicely */
+  .medical-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+  }
+
+  /* Timeline adjustments */
+  .rounded-xl {
+    break-inside: avoid;
+  }
+
+  /* Improve text contrast */
+  * {
+    color-adjust: exact !important;
+  }
+}
