@@ -632,7 +632,10 @@ export default function Consultation() {
           )}
 
           {/* Medical Report Analysis */}
-          <MedicalReportAnalyzer />
+          <MedicalReportAnalyzer 
+            patientId={selectedPatientId || undefined} 
+            doctorId={doctorInfo?.id} 
+          />
 
           {/* Symptoms Selection */}
           <div className="medical-card">

@@ -21,7 +21,10 @@ import {
   AlertCircle,
   Printer,
   Download,
-  MessageCircle
+  MessageCircle,
+  FileImage,
+  CheckCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -80,6 +83,27 @@ interface TimelineEvent {
   data: Prescription | null;
 }
 
+interface MedicalReport {
+  id: string;
+  report_type: string;
+  file_name: string;
+  file_url: string;
+  analysis: {
+    reportType: string;
+    findings: Array<{
+      parameter: string;
+      value: string;
+      normalRange?: string;
+      status: 'normal' | 'abnormal' | 'critical';
+      interpretation: string;
+    }>;
+    summary: string;
+    concernAreas: string[];
+    recommendations: string[];
+  };
+  created_at: string;
+}
+
 const parseJsonArray = <T,>(data: Json | null | undefined): T[] => {
   if (!data) return [];
   if (Array.isArray(data)) return data as unknown as T[];
@@ -94,8 +118,10 @@ export default function PatientHistory() {
   
   const [patient, setPatient] = useState<Patient | null>(null);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [medicalReports, setMedicalReports] = useState<MedicalReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [expandedReports, setExpandedReports] = useState<Set<string>>(new Set());
   const [doctorInfo, setDoctorInfo] = useState<{
     name: string;
     clinic_name: string | null;
@@ -147,7 +173,18 @@ export default function PatientHistory() {
         setPrescriptions(parsed);
       }
 
-      // Fetch doctor info for PDF
+      // Fetch medical reports for this patient
+      const { data: reportsData, error: reportsError } = await supabase
+        .from('patient_medical_reports' as any)
+        .select('*')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false });
+
+      if (reportsError) {
+        console.error('Error fetching medical reports:', reportsError);
+      } else {
+        setMedicalReports((reportsData || []) as unknown as MedicalReport[]);
+      }
       const { data: doctorData } = await supabase
         .from('doctors')
         .select('clinic_name, clinic_address, qualification, registration_no, specialization')
@@ -255,6 +292,31 @@ export default function PatientHistory() {
       }
       return next;
     });
+  };
+
+  const toggleReportExpand = (id: string) => {
+    setExpandedReports((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'normal':
+        return 'bg-green-500/10 text-green-600 border-green-500/20';
+      case 'abnormal':
+        return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
+      case 'critical':
+        return 'bg-red-500/10 text-red-600 border-red-500/20';
+      default:
+        return 'bg-muted text-muted-foreground';
+    }
   };
 
   // Build timeline events
@@ -410,6 +472,155 @@ export default function PatientHistory() {
           </Button>
         </div>
       </div>
+
+      {/* Medical Reports Section */}
+      {medicalReports.length > 0 && (
+        <div className="mb-8">
+          <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+            <FileImage className="h-5 w-5 text-primary" />
+            Medical Reports ({medicalReports.length})
+          </h3>
+          <div className="space-y-4">
+            {medicalReports.map((report) => (
+              <div 
+                key={report.id}
+                className="rounded-xl border border-border bg-card overflow-hidden"
+              >
+                <div 
+                  className="flex cursor-pointer items-center justify-between p-4 hover:bg-muted/30"
+                  onClick={() => toggleReportExpand(report.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                      <FileImage className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-foreground">{report.report_type}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {report.file_name} • {format(new Date(report.created_at), 'dd MMM yyyy')}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {report.analysis?.findings?.some(f => f.status === 'critical') && (
+                      <Badge variant="destructive">Critical</Badge>
+                    )}
+                    {report.analysis?.findings?.some(f => f.status === 'abnormal') && !report.analysis?.findings?.some(f => f.status === 'critical') && (
+                      <Badge variant="outline" className="border-yellow-500 text-yellow-600">Abnormal</Badge>
+                    )}
+                    {expandedReports.has(report.id) ? (
+                      <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+
+                {expandedReports.has(report.id) && report.analysis && (
+                  <div className="border-t border-border p-4 space-y-4">
+                    {/* Summary */}
+                    <p className="text-sm text-muted-foreground">{report.analysis.summary}</p>
+
+                    {/* Findings */}
+                    {report.analysis.findings?.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 text-sm font-medium text-foreground">Findings</h4>
+                        <div className="space-y-2">
+                          {report.analysis.findings.map((finding, idx) => (
+                            <div
+                              key={idx}
+                              className={cn(
+                                'rounded-lg border p-3',
+                                getStatusColor(finding.status)
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    {finding.status === 'normal' && <CheckCircle className="h-3.5 w-3.5" />}
+                                    {finding.status === 'abnormal' && <AlertCircle className="h-3.5 w-3.5" />}
+                                    {finding.status === 'critical' && <AlertTriangle className="h-3.5 w-3.5" />}
+                                    <span className="font-medium">{finding.parameter}</span>
+                                  </div>
+                                  <div className="mt-1 text-sm">
+                                    <span className="font-semibold">{finding.value}</span>
+                                    {finding.normalRange && (
+                                      <span className="text-muted-foreground">
+                                        {' '}(Normal: {finding.normalRange})
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="mt-1 text-xs opacity-80">
+                                    {finding.interpretation}
+                                  </p>
+                                </div>
+                                <Badge
+                                  variant="outline"
+                                  className={cn('text-xs capitalize', getStatusColor(finding.status))}
+                                >
+                                  {finding.status}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Concern Areas */}
+                    {report.analysis.concernAreas?.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-yellow-600">
+                          <AlertTriangle className="h-4 w-4" />
+                          Areas of Concern
+                        </h4>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {report.analysis.concernAreas.map((concern, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-yellow-500" />
+                              {concern}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {report.analysis.recommendations?.length > 0 && (
+                      <div>
+                        <h4 className="mb-2 flex items-center gap-1.5 text-sm font-medium text-primary">
+                          <CheckCircle className="h-4 w-4" />
+                          Recommendations
+                        </h4>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          {report.analysis.recommendations.map((rec, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
+                              {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* View Original */}
+                    <div className="pt-2">
+                      <a 
+                        href={report.file_url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-primary hover:underline"
+                      >
+                        View Original Report →
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Timeline */}
       <div className="mb-4">

@@ -2,17 +2,18 @@ import { useState, useRef } from 'react';
 import { 
   FileImage, 
   Upload, 
-  X, 
   Loader2, 
   AlertTriangle, 
   CheckCircle, 
   AlertCircle,
   FileText,
   Trash2,
+  Save,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface Finding {
@@ -38,6 +39,13 @@ interface UploadedReport {
   analysis: ReportAnalysis | null;
   analyzing: boolean;
   error: string | null;
+  saved: boolean;
+  saving: boolean;
+}
+
+interface MedicalReportAnalyzerProps {
+  patientId?: string;
+  doctorId?: string;
 }
 
 const REPORT_TYPES = [
@@ -51,7 +59,7 @@ const REPORT_TYPES = [
   'Other',
 ];
 
-export function MedicalReportAnalyzer() {
+export function MedicalReportAnalyzer({ patientId, doctorId }: MedicalReportAnalyzerProps) {
   const [reports, setReports] = useState<UploadedReport[]>([]);
   const [selectedReportType, setSelectedReportType] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +92,8 @@ export function MedicalReportAnalyzer() {
       analysis: null,
       analyzing: false,
       error: null,
+      saved: false,
+      saving: false,
     };
 
     setReports(prev => [...prev, newReport]);
@@ -161,6 +171,63 @@ export function MedicalReportAnalyzer() {
     const report = reports.find(r => r.id === reportId);
     if (report) {
       analyzeReport(reportId, report.file);
+    }
+  };
+
+  const saveReportToHistory = async (reportId: string) => {
+    if (!patientId || !doctorId) {
+      toast.error('Please select a patient first to save the report');
+      return;
+    }
+
+    const report = reports.find(r => r.id === reportId);
+    if (!report || !report.analysis) return;
+
+    setReports(prev => prev.map(r => 
+      r.id === reportId ? { ...r, saving: true } : r
+    ));
+
+    try {
+      // Upload file to storage
+      const fileExt = report.file.name.split('.').pop();
+      const fileName = `${patientId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('medical-reports')
+        .upload(fileName, report.file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('medical-reports')
+        .getPublicUrl(fileName);
+
+      // Save to database - using type assertion since types may not be synced yet
+      const { error: dbError } = await supabase
+        .from('patient_medical_reports' as any)
+        .insert({
+          patient_id: patientId,
+          doctor_id: doctorId,
+          report_type: report.analysis.reportType,
+          file_name: report.file.name,
+          file_url: urlData.publicUrl,
+          analysis: report.analysis,
+        } as any);
+
+      if (dbError) throw dbError;
+
+      setReports(prev => prev.map(r => 
+        r.id === reportId ? { ...r, saving: false, saved: true } : r
+      ));
+
+      toast.success('Report saved to patient history');
+    } catch (error) {
+      console.error('Save report error:', error);
+      setReports(prev => prev.map(r => 
+        r.id === reportId ? { ...r, saving: false } : r
+      ));
+      toast.error('Failed to save report');
     }
   };
 
@@ -391,6 +458,35 @@ export function MedicalReportAnalyzer() {
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {/* Save to History Button */}
+                  {patientId && doctorId && !report.saved && (
+                    <Button
+                      onClick={() => saveReportToHistory(report.id)}
+                      disabled={report.saving}
+                      className="w-full"
+                      variant="outline"
+                    >
+                      {report.saving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save to Patient History
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {report.saved && (
+                    <div className="flex items-center justify-center gap-2 rounded-lg bg-green-500/10 py-2 text-sm text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      Saved to patient history
                     </div>
                   )}
                 </div>
