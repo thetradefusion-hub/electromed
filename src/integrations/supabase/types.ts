@@ -50,6 +50,109 @@ export type Database = {
         }
         Relationships: []
       }
+      medicines: {
+        Row: {
+          category: string
+          contra_indications: string | null
+          created_at: string
+          default_dosage: string | null
+          doctor_id: string | null
+          id: string
+          indications: string | null
+          is_global: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          contra_indications?: string | null
+          created_at?: string
+          default_dosage?: string | null
+          doctor_id?: string | null
+          id?: string
+          indications?: string | null
+          is_global?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          contra_indications?: string | null
+          created_at?: string
+          default_dosage?: string | null
+          doctor_id?: string | null
+          id?: string
+          indications?: string | null
+          is_global?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicines_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          address: string | null
+          age: number
+          case_type: string
+          created_at: string
+          doctor_id: string
+          gender: string
+          id: string
+          mobile: string
+          name: string
+          patient_id: string
+          updated_at: string
+          visit_date: string
+        }
+        Insert: {
+          address?: string | null
+          age: number
+          case_type?: string
+          created_at?: string
+          doctor_id: string
+          gender: string
+          id?: string
+          mobile: string
+          name: string
+          patient_id: string
+          updated_at?: string
+          visit_date?: string
+        }
+        Update: {
+          address?: string | null
+          age?: number
+          case_type?: string
+          created_at?: string
+          doctor_id?: string
+          gender?: string
+          id?: string
+          mobile?: string
+          name?: string
+          patient_id?: string
+          updated_at?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -82,6 +185,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      symptoms: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          doctor_id: string | null
+          id: string
+          is_global: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          doctor_id?: string | null
+          id?: string
+          is_global?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          doctor_id?: string | null
+          id?: string
+          is_global?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "symptoms_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

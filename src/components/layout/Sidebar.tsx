@@ -13,24 +13,28 @@ import {
   Activity,
   CalendarCheck,
   BookOpen,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NavItem {
   icon: React.ElementType;
   label: string;
   path: string;
+  roles?: ('super_admin' | 'doctor' | 'staff')[];
 }
 
 const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Patients', path: '/patients' },
-  { icon: Stethoscope, label: 'Consultation', path: '/consultation' },
-  { icon: FileText, label: 'Prescriptions', path: '/prescriptions' },
-  { icon: Pill, label: 'Medicines', path: '/medicines' },
-  { icon: BookOpen, label: 'Rules Engine', path: '/rules' },
+  { icon: Stethoscope, label: 'Consultation', path: '/consultation', roles: ['super_admin', 'doctor'] },
+  { icon: FileText, label: 'Prescriptions', path: '/prescriptions', roles: ['super_admin', 'doctor'] },
+  { icon: Pill, label: 'Medicines', path: '/medicines', roles: ['super_admin', 'doctor'] },
+  { icon: BookOpen, label: 'Rules Engine', path: '/rules', roles: ['super_admin', 'doctor'] },
   { icon: CalendarCheck, label: 'Follow-ups', path: '/followups' },
-  { icon: Activity, label: 'Analytics', path: '/analytics' },
+  { icon: Activity, label: 'Analytics', path: '/analytics', roles: ['super_admin', 'doctor'] },
+  { icon: Shield, label: 'Super Admin', path: '/admin', roles: ['super_admin'] },
 ];
 
 const bottomNavItems: NavItem[] = [
@@ -40,6 +44,11 @@ const bottomNavItems: NavItem[] = [
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { role, signOut } = useAuth();
+
+  const visibleNavItems = navItems.filter(
+    (item) => !item.roles || (role && item.roles.includes(role))
+  );
 
   return (
     <aside
@@ -81,9 +90,8 @@ export function Sidebar() {
           )}
         </button>
 
-        {/* Navigation */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-thin">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
@@ -124,6 +132,7 @@ export function Sidebar() {
             );
           })}
           <button
+            onClick={signOut}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive/80 transition-all duration-200 hover:bg-destructive/10 hover:text-destructive"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
