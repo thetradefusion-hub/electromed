@@ -206,6 +206,63 @@ export type Database = {
           },
         ]
       }
+      prescriptions: {
+        Row: {
+          advice: string | null
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          follow_up_date: string | null
+          id: string
+          medicines: Json
+          patient_id: string
+          prescription_no: string
+          symptoms: Json
+          updated_at: string
+        }
+        Insert: {
+          advice?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          follow_up_date?: string | null
+          id?: string
+          medicines?: Json
+          patient_id: string
+          prescription_no: string
+          symptoms?: Json
+          updated_at?: string
+        }
+        Update: {
+          advice?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          follow_up_date?: string | null
+          id?: string
+          medicines?: Json
+          patient_id?: string
+          prescription_no?: string
+          symptoms?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescriptions_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescriptions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

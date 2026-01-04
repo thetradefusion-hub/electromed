@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { mockPatients, mockSymptoms, mockMedicines, mockRules } from '@/data/mockData';
-import { SelectedSymptom, PrescriptionMedicine, Medicine } from '@/types';
+import { usePatients } from '@/hooks/usePatients';
+import { useSymptoms, Symptom } from '@/hooks/useSymptoms';
+import { useMedicines, Medicine } from '@/hooks/useMedicines';
+import { usePrescriptions, PrescriptionSymptom, PrescriptionMedicine } from '@/hooks/usePrescriptions';
+import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import {
   User,
   Search,
@@ -12,34 +15,68 @@ import {
   AlertCircle,
   FileText,
   Sparkles,
+  Loader2,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { format, addDays } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+interface SelectedSymptom {
+  symptomId: string;
+  symptom: Symptom;
+  severity: 'low' | 'medium' | 'high';
+  duration: number;
+  durationUnit: 'days' | 'weeks' | 'months';
+}
+
+interface SuggestedMedicine {
+  medicineId: string;
+  medicine: Medicine;
+  dosage: string;
+  duration: string;
+  instructions: string;
+}
 
 export default function Consultation() {
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const patientIdFromUrl = searchParams.get('patient');
+
+  const { patients, loading: patientsLoading } = usePatients();
+  const { symptoms, loading: symptomsLoading } = useSymptoms();
+  const { medicines } = useMedicines();
+  const { createPrescription, doctorInfo } = usePrescriptions();
+
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
   const [symptomSearch, setSymptomSearch] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState<SelectedSymptom[]>([]);
-  const [suggestedMedicines, setSuggestedMedicines] = useState<PrescriptionMedicine[]>([]);
+  const [suggestedMedicines, setSuggestedMedicines] = useState<SuggestedMedicine[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [diagnosis, setDiagnosis] = useState('');
+  const [advice, setAdvice] = useState('');
+  const [followUpDays, setFollowUpDays] = useState(7);
+  const [generating, setGenerating] = useState(false);
 
-  const patient = mockPatients.find((p) => p.id === selectedPatient);
+  const patient = patients.find((p) => p.id === selectedPatientId);
 
-  const filteredPatients = mockPatients.filter(
+  const filteredPatients = patients.filter(
     (p) =>
       p.name.toLowerCase().includes(patientSearch.toLowerCase()) ||
-      p.patientId.toLowerCase().includes(patientSearch.toLowerCase())
+      p.patient_id.toLowerCase().includes(patientSearch.toLowerCase())
   );
 
-  const filteredSymptoms = mockSymptoms.filter(
+  const filteredSymptoms = symptoms.filter(
     (s) =>
       s.name.toLowerCase().includes(symptomSearch.toLowerCase()) &&
       !selectedSymptoms.find((ss) => ss.symptomId === s.id)
   );
 
   const groupedSymptoms = useMemo(() => {
-    const groups: Record<string, typeof filteredSymptoms> = {};
+    const groups: Record<string, Symptom[]> = {};
     filteredSymptoms.forEach((symptom) => {
       if (!groups[symptom.category]) {
         groups[symptom.category] = [];
@@ -49,7 +86,7 @@ export default function Consultation() {
     return groups;
   }, [filteredSymptoms]);
 
-  const addSymptom = (symptom: typeof mockSymptoms[0]) => {
+  const addSymptom = (symptom: Symptom) => {
     setSelectedSymptoms((prev) => [
       ...prev,
       {
@@ -77,28 +114,40 @@ export default function Consultation() {
     );
   };
 
-  const getSuggestions = () => {
+  const getSuggestions = async () => {
     if (selectedSymptoms.length === 0) {
       toast.error('Please select at least one symptom');
       return;
     }
 
     const symptomIds = selectedSymptoms.map((s) => s.symptomId);
-    const matchingRules = mockRules.filter((rule) =>
-      rule.symptoms.some((sId) => symptomIds.includes(sId))
+
+    const { data: rules, error } = await supabase
+      .from('medicine_rules')
+      .select('*')
+      .order('priority', { ascending: false });
+
+    if (error) {
+      toast.error('Failed to fetch suggestions');
+      return;
+    }
+
+    const medicineMap = new Map<string, SuggestedMedicine>();
+
+    const matchingRules = rules.filter((rule) =>
+      rule.symptom_ids.some((sId: string) => symptomIds.includes(sId))
     );
 
-    const medicineMap = new Map<string, PrescriptionMedicine>();
-
     matchingRules.forEach((rule) => {
-      rule.medicines.forEach((medId) => {
-        const medicine = mockMedicines.find((m) => m.id === medId);
+      rule.medicine_ids.forEach((medId: string) => {
+        const medicine = medicines.find((m) => m.id === medId);
         if (medicine && !medicineMap.has(medId)) {
           medicineMap.set(medId, {
             medicineId: medId,
             medicine,
-            dosage: rule.dosage || medicine.defaultDosage,
-            duration: rule.duration,
+            dosage: rule.dosage || medicine.default_dosage || '10 drops twice daily',
+            duration: rule.duration || '7 days',
+            instructions: '',
           });
         }
       });
@@ -113,7 +162,25 @@ export default function Consultation() {
     setSuggestedMedicines((prev) => prev.filter((m) => m.medicineId !== medicineId));
   };
 
-  const generatePrescription = () => {
+  const addManualMedicine = (medicine: Medicine) => {
+    if (suggestedMedicines.find((m) => m.medicineId === medicine.id)) {
+      toast.error('Medicine already added');
+      return;
+    }
+    setSuggestedMedicines((prev) => [
+      ...prev,
+      {
+        medicineId: medicine.id,
+        medicine,
+        dosage: medicine.default_dosage || '10 drops twice daily',
+        duration: '7 days',
+        instructions: '',
+      },
+    ]);
+    setShowSuggestions(true);
+  };
+
+  const generatePrescription = async () => {
     if (!patient) {
       toast.error('Please select a patient');
       return;
@@ -122,8 +189,85 @@ export default function Consultation() {
       toast.error('Please add medicines to the prescription');
       return;
     }
-    toast.success('Prescription generated successfully!');
+    if (!doctorInfo) {
+      toast.error('Doctor profile not found');
+      return;
+    }
+
+    setGenerating(true);
+
+    const symptomData: PrescriptionSymptom[] = selectedSymptoms.map((ss) => ({
+      id: ss.symptomId,
+      name: ss.symptom.name,
+      severity: ss.severity,
+      duration: ss.duration,
+      durationUnit: ss.durationUnit,
+    }));
+
+    const medicineData: PrescriptionMedicine[] = suggestedMedicines.map((sm) => ({
+      id: sm.medicineId,
+      name: sm.medicine.name,
+      category: sm.medicine.category,
+      dosage: sm.dosage,
+      duration: sm.duration,
+      instructions: sm.instructions,
+    }));
+
+    const followUpDate = addDays(new Date(), followUpDays).toISOString();
+
+    const prescription = await createPrescription({
+      patient_id: patient.id,
+      symptoms: symptomData,
+      medicines: medicineData,
+      diagnosis: diagnosis || undefined,
+      advice: advice || undefined,
+      follow_up_date: followUpDate,
+    });
+
+    setGenerating(false);
+
+    if (prescription) {
+      generatePrescriptionPDF(
+        {
+          prescription_no: prescription.prescription_no,
+          created_at: prescription.created_at,
+          symptoms: symptomData,
+          medicines: medicineData,
+          diagnosis,
+          advice,
+          follow_up_date: followUpDate,
+        },
+        {
+          name: patient.name,
+          patient_id: patient.patient_id,
+          age: patient.age,
+          gender: patient.gender,
+          mobile: patient.mobile,
+          address: patient.address,
+        },
+        doctorInfo
+      );
+
+      setSelectedPatientId(null);
+      setSelectedSymptoms([]);
+      setSuggestedMedicines([]);
+      setShowSuggestions(false);
+      setDiagnosis('');
+      setAdvice('');
+
+      navigate('/prescriptions');
+    }
   };
+
+  if (patientsLoading || symptomsLoading) {
+    return (
+      <MainLayout title="New Consultation" subtitle="Record symptoms and generate prescription">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout title="New Consultation" subtitle="Record symptoms and generate prescription">
@@ -137,7 +281,7 @@ export default function Consultation() {
               Select Patient
             </h3>
 
-            {!selectedPatient ? (
+            {!selectedPatientId ? (
               <div>
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -153,7 +297,7 @@ export default function Consultation() {
                   {filteredPatients.slice(0, 5).map((p) => (
                     <button
                       key={p.id}
-                      onClick={() => setSelectedPatient(p.id)}
+                      onClick={() => setSelectedPatientId(p.id)}
                       className="flex w-full items-center justify-between rounded-lg border border-border p-3 text-left transition-all hover:border-primary/30 hover:bg-primary/5"
                     >
                       <div className="flex items-center gap-3">
@@ -163,22 +307,25 @@ export default function Consultation() {
                         <div>
                           <p className="font-medium text-foreground">{p.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {p.patientId} • {p.age}y, {p.gender}
+                            {p.patient_id} • {p.age}y, {p.gender}
                           </p>
                         </div>
                       </div>
                       <span
                         className={cn(
                           'medical-badge',
-                          p.caseType === 'new'
+                          p.case_type === 'new'
                             ? 'bg-accent/10 text-accent'
                             : 'bg-primary/10 text-primary'
                         )}
                       >
-                        {p.caseType === 'new' ? 'New' : 'Follow-up'}
+                        {p.case_type === 'new' ? 'New' : 'Follow-up'}
                       </span>
                     </button>
                   ))}
+                  {filteredPatients.length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">No patients found</p>
+                  )}
                 </div>
               </div>
             ) : (
@@ -190,12 +337,12 @@ export default function Consultation() {
                   <div>
                     <p className="font-semibold text-foreground">{patient?.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {patient?.patientId} • {patient?.age}y, {patient?.gender} • {patient?.mobile}
+                      {patient?.patient_id} • {patient?.age}y, {patient?.gender} • {patient?.mobile}
                     </p>
                   </div>
                 </div>
                 <button
-                  onClick={() => setSelectedPatient(null)}
+                  onClick={() => setSelectedPatientId(null)}
                   className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 >
                   <X className="h-5 w-5" />
@@ -211,7 +358,6 @@ export default function Consultation() {
               Record Symptoms
             </h3>
 
-            {/* Selected Symptoms */}
             {selectedSymptoms.length > 0 && (
               <div className="mb-4 space-y-3">
                 {selectedSymptoms.map((ss) => (
@@ -222,9 +368,7 @@ export default function Consultation() {
                     <span className="font-medium text-foreground">{ss.symptom.name}</span>
                     <select
                       value={ss.severity}
-                      onChange={(e) =>
-                        updateSymptom(ss.symptomId, 'severity', e.target.value)
-                      }
+                      onChange={(e) => updateSymptom(ss.symptomId, 'severity', e.target.value)}
                       className="rounded-lg border border-input bg-background px-2 py-1 text-sm"
                     >
                       <option value="low">Low</option>
@@ -235,17 +379,13 @@ export default function Consultation() {
                       <input
                         type="number"
                         value={ss.duration}
-                        onChange={(e) =>
-                          updateSymptom(ss.symptomId, 'duration', parseInt(e.target.value) || 1)
-                        }
+                        onChange={(e) => updateSymptom(ss.symptomId, 'duration', parseInt(e.target.value) || 1)}
                         min="1"
                         className="w-16 rounded-lg border border-input bg-background px-2 py-1 text-sm"
                       />
                       <select
                         value={ss.durationUnit}
-                        onChange={(e) =>
-                          updateSymptom(ss.symptomId, 'durationUnit', e.target.value)
-                        }
+                        onChange={(e) => updateSymptom(ss.symptomId, 'durationUnit', e.target.value)}
                         className="rounded-lg border border-input bg-background px-2 py-1 text-sm"
                       >
                         <option value="days">Days</option>
@@ -264,7 +404,6 @@ export default function Consultation() {
               </div>
             )}
 
-            {/* Add Symptoms */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -278,13 +417,11 @@ export default function Consultation() {
 
             {symptomSearch && (
               <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-border bg-card p-2 scrollbar-thin">
-                {Object.entries(groupedSymptoms).map(([category, symptoms]) => (
+                {Object.entries(groupedSymptoms).map(([category, categorySymptoms]) => (
                   <div key={category} className="mb-3 last:mb-0">
-                    <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground uppercase">
-                      {category}
-                    </p>
+                    <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground uppercase">{category}</p>
                     <div className="space-y-1">
-                      {symptoms.map((symptom) => (
+                      {categorySymptoms.map((symptom) => (
                         <button
                           key={symptom.id}
                           onClick={() => addSymptom(symptom)}
@@ -298,14 +435,11 @@ export default function Consultation() {
                   </div>
                 ))}
                 {Object.keys(groupedSymptoms).length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    No symptoms found
-                  </p>
+                  <p className="py-4 text-center text-sm text-muted-foreground">No symptoms found</p>
                 )}
               </div>
             )}
 
-            {/* Get Suggestions Button */}
             <button
               onClick={getSuggestions}
               disabled={selectedSymptoms.length === 0}
@@ -314,6 +448,52 @@ export default function Consultation() {
               <Sparkles className="h-4 w-4" />
               Get Medicine Suggestions
             </button>
+          </div>
+
+          {/* Diagnosis & Advice */}
+          <div className="medical-card">
+            <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+              <FileText className="h-5 w-5 text-primary" />
+              Diagnosis & Advice
+            </h3>
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Diagnosis</label>
+                <textarea
+                  value={diagnosis}
+                  onChange={(e) => setDiagnosis(e.target.value)}
+                  placeholder="Enter diagnosis..."
+                  rows={2}
+                  className="medical-input resize-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Advice</label>
+                <textarea
+                  value={advice}
+                  onChange={(e) => setAdvice(e.target.value)}
+                  placeholder="Enter advice for the patient..."
+                  rows={2}
+                  className="medical-input resize-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Follow-up After</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={followUpDays}
+                    onChange={(e) => setFollowUpDays(parseInt(e.target.value) || 7)}
+                    min="1"
+                    className="w-20 medical-input"
+                  />
+                  <span className="text-sm text-muted-foreground">days</span>
+                  <span className="ml-2 text-sm text-muted-foreground">
+                    ({format(addDays(new Date(), followUpDays), 'dd MMM yyyy')})
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -340,7 +520,7 @@ export default function Consultation() {
                   <AlertCircle className="h-8 w-8 text-warning" />
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  No matching medicines found for the selected symptoms
+                  No matching medicines found. Add medicines manually below.
                 </p>
               </div>
             ) : (
@@ -371,9 +551,7 @@ export default function Consultation() {
                           onChange={(e) => {
                             setSuggestedMedicines((prev) =>
                               prev.map((m) =>
-                                m.medicineId === pm.medicineId
-                                  ? { ...m, dosage: e.target.value }
-                                  : m
+                                m.medicineId === pm.medicineId ? { ...m, dosage: e.target.value } : m
                               )
                             );
                           }}
@@ -388,9 +566,7 @@ export default function Consultation() {
                           onChange={(e) => {
                             setSuggestedMedicines((prev) =>
                               prev.map((m) =>
-                                m.medicineId === pm.medicineId
-                                  ? { ...m, duration: e.target.value }
-                                  : m
+                                m.medicineId === pm.medicineId ? { ...m, duration: e.target.value } : m
                               )
                             );
                           }}
@@ -402,26 +578,50 @@ export default function Consultation() {
                 ))}
               </div>
             )}
+
+            {showSuggestions && (
+              <div className="mt-4 border-t border-border pt-4">
+                <label className="mb-2 block text-xs font-medium text-muted-foreground">Add Medicine Manually</label>
+                <select
+                  onChange={(e) => {
+                    const med = medicines.find((m) => m.id === e.target.value);
+                    if (med) addManualMedicine(med);
+                    e.target.value = '';
+                  }}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  defaultValue=""
+                >
+                  <option value="" disabled>Select a medicine...</option>
+                  {medicines.map((med) => (
+                    <option key={med.id} value={med.id}>
+                      {med.name} ({med.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          {/* Disclaimer & Actions */}
           <div className="rounded-xl border border-warning/30 bg-warning/5 p-4">
             <div className="flex items-start gap-2">
               <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
               <p className="text-xs text-muted-foreground">
-                These are suggestions based on rules. The final prescription decision lies with the
-                qualified doctor.
+                These are suggestions based on rules. The final prescription decision lies with the qualified doctor.
               </p>
             </div>
           </div>
 
           <button
             onClick={generatePrescription}
-            disabled={!patient || suggestedMedicines.length === 0}
+            disabled={!patient || suggestedMedicines.length === 0 || generating}
             className="w-full medical-btn-primary disabled:opacity-50"
           >
-            <FileText className="h-4 w-4" />
-            Generate Prescription
+            {generating ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Generate & Download PDF
           </button>
         </div>
       </div>
