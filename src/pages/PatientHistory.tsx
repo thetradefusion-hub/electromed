@@ -27,6 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Json } from '@/integrations/supabase/types';
 import { generatePatientHistoryPDF } from '@/utils/generatePatientHistoryPDF';
+import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import { toast } from 'sonner';
 
 interface Patient {
@@ -181,6 +182,36 @@ export default function PatientHistory() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPrescription = (prescription: Prescription, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent expanding/collapsing
+    if (!patient || !doctorInfo) {
+      toast.error('Unable to generate prescription. Please try again.');
+      return;
+    }
+
+    generatePrescriptionPDF(
+      {
+        prescription_no: prescription.prescription_no,
+        created_at: prescription.created_at,
+        symptoms: prescription.symptoms,
+        medicines: prescription.medicines,
+        diagnosis: prescription.diagnosis,
+        advice: prescription.advice,
+        follow_up_date: prescription.follow_up_date,
+      },
+      {
+        name: patient.name,
+        patient_id: patient.patient_id,
+        age: patient.age,
+        gender: patient.gender,
+        mobile: patient.mobile,
+        address: patient.address,
+      },
+      doctorInfo
+    );
+    toast.success(`Prescription ${prescription.prescription_no} downloaded`);
   };
 
   const toggleExpand = (id: string) => {
@@ -532,6 +563,19 @@ export default function PatientHistory() {
                               </span>
                             </div>
                           )}
+
+                          {/* Download Button */}
+                          <div className="flex justify-end pt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={(e) => handleDownloadPrescription(event.data!, e)}
+                            >
+                              <Download className="h-4 w-4" />
+                              Download PDF
+                            </Button>
+                          </div>
                         </div>
                       )}
                   </div>
