@@ -1,6 +1,6 @@
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { TopMedicines } from '@/components/dashboard/TopMedicines';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import {
   Users,
   FileText,
@@ -8,6 +8,8 @@ import {
   Calendar,
   Activity,
   PieChart,
+  Loader2,
+  Pill,
 } from 'lucide-react';
 import {
   LineChart,
@@ -21,205 +23,239 @@ import {
   Bar,
 } from 'recharts';
 
-const patientTrend = [
-  { month: 'Jan', patients: 45 },
-  { month: 'Feb', patients: 52 },
-  { month: 'Mar', patients: 48 },
-  { month: 'Apr', patients: 70 },
-  { month: 'May', patients: 61 },
-  { month: 'Jun', patients: 75 },
-  { month: 'Jul', patients: 82 },
-  { month: 'Aug', patients: 91 },
-  { month: 'Sep', patients: 78 },
-  { month: 'Oct', patients: 95 },
-  { month: 'Nov', patients: 88 },
-  { month: 'Dec', patients: 102 },
-];
-
-const diseaseDistribution = [
-  { name: 'Digestive', count: 145 },
-  { name: 'Respiratory', count: 98 },
-  { name: 'Neurological', count: 76 },
-  { name: 'Musculoskeletal', count: 65 },
-  { name: 'Dermatological', count: 42 },
-  { name: 'Other', count: 31 },
-];
-
-const weeklyPatients = [
-  { day: 'Mon', patients: 12 },
-  { day: 'Tue', patients: 15 },
-  { day: 'Wed', patients: 8 },
-  { day: 'Thu', patients: 18 },
-  { day: 'Fri', patients: 14 },
-  { day: 'Sat', patients: 22 },
-  { day: 'Sun', patients: 6 },
-];
-
 export default function Analytics() {
+  const { data: analytics, isLoading } = useAnalytics();
+
+  const followUpRate = analytics && analytics.totalPatients > 0
+    ? Math.round((analytics.totalPrescriptions / analytics.totalPatients) * 100)
+    : 0;
+
   return (
     <MainLayout title="Analytics" subtitle="Track your clinic performance and trends">
       {/* Stats Grid */}
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Patients"
-          value={457}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : analytics?.totalPatients ?? 0}
           subtitle="All time"
           icon={Users}
-          trend={{ value: 18, isPositive: true }}
           variant="primary"
         />
         <StatCard
           title="This Month"
-          value={102}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : analytics?.thisMonthPatients ?? 0}
           subtitle="New registrations"
           icon={TrendingUp}
-          trend={{ value: 12, isPositive: true }}
           variant="accent"
         />
         <StatCard
           title="Prescriptions"
-          value={342}
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : analytics?.totalPrescriptions ?? 0}
           subtitle="Generated"
           icon={FileText}
         />
         <StatCard
-          title="Follow-up Rate"
-          value="78%"
-          subtitle="Patient retention"
+          title="Prescription Rate"
+          value={isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : `${followUpRate}%`}
+          subtitle="Per patient"
           icon={Activity}
           variant="warning"
         />
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Patient Trend */}
-        <div className="medical-card">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Patient Trend</h3>
-              <p className="text-sm text-muted-foreground">Monthly patient registrations</p>
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {!isLoading && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Patient Trend */}
+          <div className="medical-card">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Patient Trend</h3>
+                <p className="text-sm text-muted-foreground">Monthly patient registrations</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <TrendingUp className="h-5 w-5 text-primary" />
+              </div>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-              <TrendingUp className="h-5 w-5 text-primary" />
+            <div className="h-64">
+              {analytics?.monthlyTrend && analytics.monthlyTrend.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={analytics.monthlyTrend}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="patients"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+                      name="Patients"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="prescriptions"
+                      stroke="hsl(var(--accent))"
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--accent))', strokeWidth: 2 }}
+                      activeDot={{ r: 6, fill: 'hsl(var(--accent))' }}
+                      name="Prescriptions"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No data available yet
+                </div>
+              )}
             </div>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={patientTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="patients"
-                  stroke="hsl(var(--primary))"
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+
+          {/* Symptom Categories */}
+          <div className="medical-card">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Symptom Categories</h3>
+                <p className="text-sm text-muted-foreground">Most common conditions</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
+                <PieChart className="h-5 w-5 text-accent" />
+              </div>
+            </div>
+            <div className="h-64">
+              {analytics?.symptomCategories && analytics.symptomCategories.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.symptomCategories} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                      width={100}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No prescription data yet
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Weekly Overview */}
+          <div className="medical-card">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Weekly Overview</h3>
+                <p className="text-sm text-muted-foreground">Patients by day of week</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
+                <Calendar className="h-5 w-5 text-warning" />
+              </div>
+            </div>
+            <div className="h-64">
+              {analytics?.weeklyOverview ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={analytics.weeklyOverview}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      axisLine={{ stroke: 'hsl(var(--border))' }}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                      }}
+                    />
+                    <Bar dataKey="patients" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex h-full items-center justify-center text-muted-foreground">
+                  No data available
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Top Medicines */}
+          <div className="medical-card">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-foreground">Top Medicines</h3>
+                <p className="text-sm text-muted-foreground">Most prescribed medicines</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                <Pill className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+            {analytics?.topMedicines && analytics.topMedicines.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.topMedicines.map((medicine, index) => (
+                  <div key={medicine.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+                        {index + 1}
+                      </div>
+                      <span className="font-medium text-foreground">{medicine.name}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{medicine.count} prescriptions</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex h-48 items-center justify-center text-muted-foreground">
+                No prescription data yet
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Disease Distribution */}
-        <div className="medical-card">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Disease Distribution</h3>
-              <p className="text-sm text-muted-foreground">By symptom category</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
-              <PieChart className="h-5 w-5 text-accent" />
-            </div>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={diseaseDistribution} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                  width={100}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Bar dataKey="count" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Weekly Overview */}
-        <div className="medical-card">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">Weekly Overview</h3>
-              <p className="text-sm text-muted-foreground">Patients by day of week</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
-              <Calendar className="h-5 w-5 text-warning" />
-            </div>
-          </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyPatients}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis
-                  dataKey="day"
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                  axisLine={{ stroke: 'hsl(var(--border))' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                  }}
-                />
-                <Bar dataKey="patients" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Top Medicines */}
-        <TopMedicines />
-      </div>
+      )}
     </MainLayout>
   );
 }
