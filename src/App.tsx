@@ -21,6 +21,7 @@ import NotFound from "./pages/NotFound";
 import SuperAdmin from "./pages/SuperAdmin";
 import Appointments from "./pages/Appointments";
 import BookAppointment from "./pages/BookAppointment";
+import Symptoms from "./pages/Symptoms";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['super_admin', 'doctor']}>
                   <Medicines />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/symptoms"
+              element={
+                <ProtectedRoute allowedRoles={['super_admin', 'doctor']}>
+                  <Symptoms />
                 </ProtectedRoute>
               }
             />
