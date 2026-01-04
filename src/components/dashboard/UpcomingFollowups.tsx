@@ -1,34 +1,27 @@
-import { Calendar, Clock, User, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const mockFollowups = [
-  {
-    id: '1',
-    patientName: 'Amit Sharma',
-    patientId: 'EH-2024-001',
-    scheduledDate: new Date(Date.now() + 86400000),
-    time: '10:00 AM',
-    reason: 'Review after medication',
-  },
-  {
-    id: '2',
-    patientName: 'Priya Singh',
-    patientId: 'EH-2024-002',
-    scheduledDate: new Date(Date.now() + 86400000 * 2),
-    time: '11:30 AM',
-    reason: 'Monthly checkup',
-  },
-  {
-    id: '3',
-    patientName: 'Ravi Verma',
-    patientId: 'EH-2024-003',
-    scheduledDate: new Date(Date.now() + 86400000 * 3),
-    time: '02:00 PM',
-    reason: 'Test results review',
-  },
-];
+import { useFollowUps } from '@/hooks/useFollowUps';
+import { format, isToday, isTomorrow, isBefore, startOfDay } from 'date-fns';
 
 export function UpcomingFollowups() {
+  const { followUps, isLoading } = useFollowUps();
+
+  const today = startOfDay(new Date());
+  
+  // Filter to only upcoming (not past) and limit to 3
+  const upcomingFollowUps = followUps
+    .filter((fu) => {
+      const fuDate = startOfDay(fu.followUpDate);
+      return !isBefore(fuDate, today);
+    })
+    .slice(0, 3);
+
+  const getDateLabel = (date: Date) => {
+    if (isToday(date)) return 'Today';
+    if (isTomorrow(date)) return 'Tomorrow';
+    return format(date, 'dd MMM');
+  };
+
   return (
     <div className="medical-card">
       <div className="mb-4 flex items-center justify-between">
@@ -45,40 +38,54 @@ export function UpcomingFollowups() {
         </Link>
       </div>
 
-      <div className="space-y-3">
-        {mockFollowups.map((followup, index) => (
-          <div
-            key={followup.id}
-            className="rounded-lg border border-border bg-card p-3 transition-all duration-200 hover:border-primary/30 hover:shadow-sm animate-fade-in"
-            style={{ animationDelay: `${index * 50}ms` }}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
-                  <User className="h-5 w-5 text-accent" />
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      )}
+
+      {!isLoading && upcomingFollowUps.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <Calendar className="h-8 w-8 text-muted-foreground mb-2" />
+          <p className="text-sm text-muted-foreground">No upcoming follow-ups</p>
+        </div>
+      )}
+
+      {!isLoading && upcomingFollowUps.length > 0 && (
+        <div className="space-y-3">
+          {upcomingFollowUps.map((followup, index) => (
+            <div
+              key={followup.id}
+              className="rounded-lg border border-border bg-card p-3 transition-all duration-200 hover:border-primary/30 hover:shadow-sm animate-fade-in"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
+                    <User className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{followup.patientName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {followup.diagnosis || 'Follow-up consultation'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-foreground">{followup.patientName}</p>
-                  <p className="text-xs text-muted-foreground">{followup.reason}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1 text-xs font-medium text-foreground">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                  {followup.scheduledDate.toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </div>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  {followup.time}
+                <div className="text-right">
+                  <div className="flex items-center gap-1 text-xs font-medium text-foreground">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    {getDateLabel(followup.followUpDate)}
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3.5 w-3.5" />
+                    {format(followup.followUpDate, 'hh:mm a')}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
