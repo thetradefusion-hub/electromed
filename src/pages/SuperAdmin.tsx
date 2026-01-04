@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Activity, Pill, Stethoscope, BookOpen, TrendingUp, Clock } from 'lucide-react';
+import { Users, Activity, Pill, Stethoscope, BookOpen, TrendingUp, Clock, Shield } from 'lucide-react';
 import DoctorsManagement from '@/components/superadmin/DoctorsManagement';
 import ClinicAnalytics from '@/components/superadmin/ClinicAnalytics';
 import SymptomsManagement from '@/components/superadmin/SymptomsManagement';
@@ -9,6 +9,7 @@ import MedicinesManagement from '@/components/superadmin/MedicinesManagement';
 import RulesManagement from '@/components/superadmin/RulesManagement';
 import ActivityFeed from '@/components/superadmin/ActivityFeed';
 import DoctorPerformance from '@/components/superadmin/DoctorPerformance';
+import UserRolesManagement from '@/components/superadmin/UserRolesManagement';
 
 const SuperAdmin = () => {
   const [activeTab, setActiveTab] = useState('analytics');
@@ -51,6 +52,10 @@ const SuperAdmin = () => {
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Rules</span>
             </TabsTrigger>
+            <TabsTrigger value="roles" className="gap-2">
+              <Shield className="h-4 w-4" />
+              <span className="hidden sm:inline">User Roles</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics">
@@ -84,6 +89,10 @@ const SuperAdmin = () => {
 
           <TabsContent value="rules">
             <RulesManagement />
+          </TabsContent>
+
+          <TabsContent value="roles">
+            <UserRolesManagement />
           </TabsContent>
         </Tabs>
       </div>
