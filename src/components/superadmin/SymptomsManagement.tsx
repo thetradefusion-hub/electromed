@@ -33,6 +33,14 @@ const SYMPTOM_CATEGORIES = [
   'Urological',
   'Gynecological',
   'Psychological',
+  'Lymphatic',
+  'Blood',
+  'Ophthalmological',
+  'ENT',
+  'Parasitic',
+  'Metabolic',
+  'Endocrine',
+  'Immune',
   'Other',
 ];
 
