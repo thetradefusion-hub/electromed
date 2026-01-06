@@ -3,7 +3,7 @@ import {
   LayoutDashboard, 
   Users, 
   Stethoscope, 
-  CalendarCheck, 
+  Pill, 
   Menu 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,7 +21,7 @@ export function MobileNav({ onMenuClick }: MobileNavProps) {
     { icon: LayoutDashboard, label: t('nav.dashboard'), path: '/' },
     { icon: Users, label: t('nav.patients'), path: '/patients' },
     { icon: Stethoscope, label: t('nav.consultation'), path: '/consultation' },
-    { icon: CalendarCheck, label: t('nav.appointments'), path: '/appointments' },
+    { icon: Pill, label: t('nav.medicines'), path: '/medicines' },
   ];
 
   return (
