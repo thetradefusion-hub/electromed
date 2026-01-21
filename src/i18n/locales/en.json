@@ -172,12 +172,47 @@
     "createdAt": "Created At",
     "viewPrescription": "View Prescription",
     "downloadPdf": "Download PDF",
+    "downloadPdfHindi": "Download PDF (Hindi)",
     "shareWhatsapp": "Share on WhatsApp",
     "noPrescriptions": "No prescriptions found",
     "medicine": "Medicine",
     "dosage": "Dosage",
     "duration": "Duration",
     "instructions": "Instructions"
+  },
+  "prescription": {
+    "clinicName": "Clinic Name",
+    "electroHomoeopathy": "Electro-Homoeopathy Prescription",
+    "prescriptionNo": "Prescription No",
+    "date": "Date",
+    "patientName": "Patient Name",
+    "patientId": "Patient ID",
+    "ageGender": "Age/Gender",
+    "mobile": "Mobile",
+    "symptoms": "SYMPTOMS",
+    "diagnosis": "DIAGNOSIS",
+    "rx": "Rx",
+    "medicineDetailsTitle": "MEDICINE DETAILS & BENEFITS",
+    "use": "Use",
+    "avoid": "Avoid",
+    "do": "Do",
+    "advice": "ADVICE",
+    "followUpDate": "Follow-up Date",
+    "footer": "This prescription is computer-generated and is valid without a signature.",
+    "generatedOn": "Generated on",
+    "severity": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "durationUnits": {
+      "days": "days",
+      "weeks": "weeks",
+      "months": "months"
+    },
+    "dosageLabel": "Dosage",
+    "durationLabel": "Duration",
+    "instructionsLabel": "Instructions"
   },
   "symptoms": {
     "title": "Symptoms",
