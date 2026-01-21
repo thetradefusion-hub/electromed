@@ -311,6 +311,9 @@ export default function Consultation() {
       dosage: sm.dosage,
       duration: sm.duration,
       instructions: sm.instructions,
+      indications: sm.medicine.indications || undefined,
+      contraIndications: sm.medicine.contra_indications || undefined,
+      notes: sm.medicine.notes || undefined,
     }));
 
     const followUpDate = addDays(new Date(), followUpDays).toISOString();
@@ -838,11 +841,11 @@ export default function Consultation() {
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {suggestedMedicines.map((pm) => (
                   <div
                     key={pm.medicineId}
-                    className="rounded-lg border border-border p-3 transition-all hover:border-primary/30"
+                    className="rounded-lg border border-border p-3 transition-all hover:border-primary/30 hover:shadow-sm"
                   >
                     <div className="mb-2 flex items-start justify-between">
                       <div>
@@ -856,6 +859,31 @@ export default function Consultation() {
                         <X className="h-4 w-4" />
                       </button>
                     </div>
+                    
+                    {/* Medicine Details Section */}
+                    {(pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
+                      <div className="mb-3 rounded-md bg-secondary/50 p-2 space-y-1.5">
+                        {pm.medicine.indications && (
+                          <div className="flex gap-2">
+                            <span className="text-xs font-medium text-primary shrink-0">Use:</span>
+                            <p className="text-xs text-muted-foreground">{pm.medicine.indications}</p>
+                          </div>
+                        )}
+                        {pm.medicine.contra_indications && (
+                          <div className="flex gap-2">
+                            <span className="text-xs font-medium text-destructive shrink-0">Avoid:</span>
+                            <p className="text-xs text-muted-foreground">{pm.medicine.contra_indications}</p>
+                          </div>
+                        )}
+                        {pm.medicine.notes && (
+                          <div className="flex gap-2">
+                            <span className="text-xs font-medium text-accent shrink-0">Info:</span>
+                            <p className="text-xs text-muted-foreground">{pm.medicine.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="grid gap-2 sm:grid-cols-2">
                       <div>
                         <label className="text-xs text-muted-foreground">Dosage</label>

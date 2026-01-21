@@ -19,6 +19,9 @@ export interface PrescriptionMedicine {
   dosage: string;
   duration: string;
   instructions?: string;
+  indications?: string;
+  contraIndications?: string;
+  notes?: string;
 }
 
 export interface Prescription {
