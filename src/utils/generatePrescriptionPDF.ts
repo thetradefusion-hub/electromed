@@ -32,6 +32,9 @@ interface PrescriptionMedicine {
   dosage: string;
   duration: string;
   instructions?: string;
+  indications?: string;
+  contraIndications?: string;
+  notes?: string;
 }
 
 interface PrescriptionData {
@@ -160,7 +163,7 @@ export const generatePrescriptionPDF = (
 
   prescription.medicines.forEach((med, index) => {
     // Check for page break
-    if (yPos > 250) {
+    if (yPos > 220) {
       doc.addPage();
       yPos = 20;
     }
@@ -183,7 +186,7 @@ export const generatePrescriptionPDF = (
     
     if (med.instructions) {
       doc.setTextColor(80, 80, 80);
-      doc.text(`Note: ${med.instructions}`, margin + 10, yPos);
+      doc.text(`Instructions: ${med.instructions}`, margin + 10, yPos);
       yPos += 5;
     }
     yPos += 3;
@@ -191,8 +194,102 @@ export const generatePrescriptionPDF = (
 
   yPos += 5;
 
+  // Medicine Details & Benefits Section
+  const medicinesWithDetails = prescription.medicines.filter(
+    (med) => med.indications || med.contraIndications || med.notes
+  );
+
+  if (medicinesWithDetails.length > 0) {
+    // Check for page break before adding section
+    if (yPos > 200) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Section Header with background
+    doc.setFillColor(240, 253, 244); // Light green background
+    doc.setDrawColor(34, 197, 94); // Green border
+    doc.roundedRect(margin, yPos - 2, pageWidth - 2 * margin, 10, 2, 2, 'FD');
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(22, 101, 52); // Dark green text
+    doc.text('MEDICINE DETAILS & BENEFITS', margin + 5, yPos + 5);
+    yPos += 15;
+
+    medicinesWithDetails.forEach((med) => {
+      // Check for page break
+      if (yPos > 245) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Medicine name
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 30, 30);
+      doc.text(`${med.name}:`, margin + 5, yPos);
+      yPos += 5;
+
+      // Indications/Use
+      if (med.indications) {
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(0, 102, 153);
+        doc.text('Use: ', margin + 8, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+        const indicationText = doc.splitTextToSize(med.indications, pageWidth - margin * 2 - 25);
+        doc.text(indicationText, margin + 20, yPos);
+        yPos += indicationText.length * 4 + 2;
+      }
+
+      // Contra-indications/Avoid
+      if (med.contraIndications) {
+        if (yPos > 260) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(180, 50, 50);
+        doc.text('Avoid: ', margin + 8, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+        const avoidText = doc.splitTextToSize(med.contraIndications, pageWidth - margin * 2 - 25);
+        doc.text(avoidText, margin + 24, yPos);
+        yPos += avoidText.length * 4 + 2;
+      }
+
+      // Notes/Do
+      if (med.notes) {
+        if (yPos > 260) {
+          doc.addPage();
+          yPos = 20;
+        }
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(34, 139, 34);
+        doc.text('Do: ', margin + 8, yPos);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(60, 60, 60);
+        const notesText = doc.splitTextToSize(med.notes, pageWidth - margin * 2 - 20);
+        doc.text(notesText, margin + 18, yPos);
+        yPos += notesText.length * 4 + 2;
+      }
+
+      yPos += 3;
+    });
+
+    yPos += 5;
+  }
+
   // Advice Section
   if (prescription.advice) {
+    if (yPos > 240) {
+      doc.addPage();
+      yPos = 20;
+    }
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 153);
@@ -209,6 +306,10 @@ export const generatePrescriptionPDF = (
 
   // Follow-up Date Box
   if (prescription.follow_up_date) {
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
     yPos += 5;
     doc.setFillColor(255, 248, 240);
     doc.setDrawColor(255, 180, 100);
