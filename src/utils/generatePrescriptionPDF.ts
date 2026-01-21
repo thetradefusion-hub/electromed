@@ -47,26 +47,103 @@ interface PrescriptionData {
   follow_up_date?: string | null;
 }
 
+// Hindi labels for prescription
+const HINDI_LABELS = {
+  electroHomoeopathy: 'Electro-Homoeopathy Prescription / इलेक्ट्रो-होम्योपैथी प्रिस्क्रिप्शन',
+  prescriptionNo: 'Prescription No / प्रिस्क्रिप्शन नंबर',
+  date: 'Date / तारीख',
+  patientName: 'Patient Name / मरीज़ का नाम',
+  patientId: 'Patient ID / मरीज़ आईडी',
+  ageGender: 'Age/Gender / आयु/लिंग',
+  mobile: 'Mobile / मोबाइल',
+  symptoms: 'SYMPTOMS / लक्षण',
+  diagnosis: 'DIAGNOSIS / निदान',
+  medicineDetailsTitle: 'MEDICINE DETAILS & BENEFITS / दवाई विवरण एवं लाभ',
+  use: 'Use / उपयोग',
+  avoid: 'Avoid / परहेज़',
+  do: 'Do / करें',
+  advice: 'ADVICE / सलाह',
+  followUpDate: 'Follow-up Date / फॉलो-अप की तारीख',
+  footer: 'This prescription is computer-generated and is valid without a signature.',
+  footerHindi: 'यह प्रिस्क्रिप्शन कंप्यूटर द्वारा जनरेट है और बिना हस्ताक्षर के मान्य है।',
+  generatedOn: 'Generated on / जनरेट की तारीख',
+  dosage: 'Dosage / खुराक',
+  duration: 'Duration / अवधि',
+  instructions: 'Instructions / निर्देश',
+  severity: {
+    low: 'Low / हल्का',
+    medium: 'Medium / मध्यम',
+    high: 'High / गंभीर'
+  },
+  durationUnits: {
+    days: 'days / दिन',
+    weeks: 'weeks / सप्ताह',
+    months: 'months / महीने'
+  }
+};
+
+const ENGLISH_LABELS = {
+  electroHomoeopathy: 'Electro-Homoeopathy Prescription',
+  prescriptionNo: 'Prescription No',
+  date: 'Date',
+  patientName: 'Patient Name',
+  patientId: 'Patient ID',
+  ageGender: 'Age/Gender',
+  mobile: 'Mobile',
+  symptoms: 'SYMPTOMS',
+  diagnosis: 'DIAGNOSIS',
+  medicineDetailsTitle: 'MEDICINE DETAILS & BENEFITS',
+  use: 'Use',
+  avoid: 'Avoid',
+  do: 'Do',
+  advice: 'ADVICE',
+  followUpDate: 'Follow-up Date',
+  footer: 'This prescription is computer-generated and is valid without a signature.',
+  generatedOn: 'Generated on',
+  dosage: 'Dosage',
+  duration: 'Duration',
+  instructions: 'Instructions',
+  severity: {
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High'
+  },
+  durationUnits: {
+    days: 'days',
+    weeks: 'weeks',
+    months: 'months'
+  }
+};
+
 export const generatePrescriptionPDF = (
   prescription: PrescriptionData,
   patient: PatientInfo,
-  doctor: DoctorInfo
+  doctor: DoctorInfo,
+  language: 'en' | 'hi' = 'en'
 ): void => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   let yPos = 20;
+  
+  const labels = language === 'hi' ? HINDI_LABELS : ENGLISH_LABELS;
 
   // Header - Clinic Name
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(0, 102, 153);
   doc.text(doctor.clinic_name || 'Medical Clinic', pageWidth / 2, yPos, { align: 'center' });
-  yPos += 8;
+  yPos += 6;
+
+  // Electro-Homoeopathy subtitle
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text(labels.electroHomoeopathy, pageWidth / 2, yPos, { align: 'center' });
+  yPos += 6;
 
   // Clinic Address
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   if (doctor.clinic_address) {
     doc.text(doctor.clinic_address, pageWidth / 2, yPos, { align: 'center' });
@@ -83,26 +160,28 @@ export const generatePrescriptionPDF = (
   yPos += 10;
 
   // Divider
-  doc.setDrawColor(200, 200, 200);
+  doc.setDrawColor(0, 102, 153);
+  doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 10;
 
   // Prescription Info Row
   doc.setFontSize(10);
   doc.setTextColor(50, 50, 50);
-  doc.text(`Prescription No: ${prescription.prescription_no}`, margin, yPos);
-  doc.text(`Date: ${format(new Date(prescription.created_at), 'dd MMM yyyy')}`, pageWidth - margin, yPos, { align: 'right' });
+  doc.text(`${labels.prescriptionNo}: ${prescription.prescription_no}`, margin, yPos);
+  doc.text(`${labels.date}: ${format(new Date(prescription.created_at), 'dd MMM yyyy')}`, pageWidth - margin, yPos, { align: 'right' });
   yPos += 12;
 
   // Patient Info Box
-  doc.setFillColor(245, 247, 250);
-  doc.roundedRect(margin, yPos - 4, pageWidth - 2 * margin, 28, 3, 3, 'F');
+  doc.setFillColor(240, 248, 255);
+  doc.setDrawColor(0, 102, 153);
+  doc.roundedRect(margin, yPos - 4, pageWidth - 2 * margin, 28, 3, 3, 'FD');
   
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
-  doc.text('Patient Name', margin + 5, yPos + 2);
-  doc.text('Patient ID', margin + 70, yPos + 2);
-  doc.text('Age/Gender', margin + 120, yPos + 2);
+  doc.text(labels.patientName, margin + 5, yPos + 2);
+  doc.text(labels.patientId, margin + 70, yPos + 2);
+  doc.text(labels.ageGender, margin + 120, yPos + 2);
   
   doc.setFontSize(11);
   doc.setTextColor(30, 30, 30);
@@ -110,13 +189,14 @@ export const generatePrescriptionPDF = (
   doc.text(patient.name, margin + 5, yPos + 10);
   doc.setFont('helvetica', 'normal');
   doc.text(patient.patient_id, margin + 70, yPos + 10);
-  doc.text(`${patient.age}y / ${patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1)}`, margin + 120, yPos + 10);
+  const genderText = patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1);
+  doc.text(`${patient.age}y / ${genderText}`, margin + 120, yPos + 10);
   
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
-  doc.text('Mobile', margin + 5, yPos + 18);
+  doc.text(labels.mobile, margin + 5, yPos + 18);
   doc.setTextColor(30, 30, 30);
-  doc.text(patient.mobile, margin + 25, yPos + 18);
+  doc.text(patient.mobile, margin + 30, yPos + 18);
   yPos += 34;
 
   // Symptoms Section
@@ -124,14 +204,25 @@ export const generatePrescriptionPDF = (
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 153);
-    doc.text('SYMPTOMS', margin, yPos);
+    doc.text(labels.symptoms, margin, yPos);
     yPos += 6;
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(50, 50, 50);
+    
+    const getSeverityLabel = (severity: string) => {
+      const severityLabels = labels.severity as Record<string, string>;
+      return severityLabels[severity] || severity;
+    };
+    
+    const getDurationUnitLabel = (unit: string) => {
+      const unitLabels = labels.durationUnits as Record<string, string>;
+      return unitLabels[unit] || unit;
+    };
+    
     const symptomText = prescription.symptoms
-      .map((s) => `${s.name} (${s.severity}, ${s.duration} ${s.durationUnit})`)
+      .map((s) => `${s.name} (${getSeverityLabel(s.severity)}, ${s.duration} ${getDurationUnitLabel(s.durationUnit)})`)
       .join(', ');
     const symptomLines = doc.splitTextToSize(symptomText, pageWidth - 2 * margin);
     doc.text(symptomLines, margin, yPos);
@@ -143,7 +234,7 @@ export const generatePrescriptionPDF = (
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 153);
-    doc.text('DIAGNOSIS', margin, yPos);
+    doc.text(labels.diagnosis, margin, yPos);
     yPos += 6;
     
     doc.setFontSize(10);
@@ -180,13 +271,13 @@ export const generatePrescriptionPDF = (
     yPos += 5;
     
     doc.setTextColor(50, 50, 50);
-    doc.text(`Dosage: ${med.dosage}`, margin + 10, yPos);
-    doc.text(`Duration: ${med.duration}`, margin + 80, yPos);
+    doc.text(`${labels.dosage}: ${med.dosage}`, margin + 10, yPos);
+    doc.text(`${labels.duration}: ${med.duration}`, margin + 90, yPos);
     yPos += 5;
     
     if (med.instructions) {
       doc.setTextColor(80, 80, 80);
-      doc.text(`Instructions: ${med.instructions}`, margin + 10, yPos);
+      doc.text(`${labels.instructions}: ${med.instructions}`, margin + 10, yPos);
       yPos += 5;
     }
     yPos += 3;
@@ -207,14 +298,14 @@ export const generatePrescriptionPDF = (
     }
 
     // Section Header with background
-    doc.setFillColor(240, 253, 244); // Light green background
-    doc.setDrawColor(34, 197, 94); // Green border
+    doc.setFillColor(240, 253, 244);
+    doc.setDrawColor(34, 197, 94);
     doc.roundedRect(margin, yPos - 2, pageWidth - 2 * margin, 10, 2, 2, 'FD');
     
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(22, 101, 52); // Dark green text
-    doc.text('MEDICINE DETAILS & BENEFITS', margin + 5, yPos + 5);
+    doc.setTextColor(22, 101, 52);
+    doc.text(labels.medicineDetailsTitle, margin + 5, yPos + 5);
     yPos += 15;
 
     medicinesWithDetails.forEach((med) => {
@@ -236,11 +327,11 @@ export const generatePrescriptionPDF = (
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(0, 102, 153);
-        doc.text('Use: ', margin + 8, yPos);
+        doc.text(`${labels.use}: `, margin + 8, yPos);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
-        const indicationText = doc.splitTextToSize(med.indications, pageWidth - margin * 2 - 25);
-        doc.text(indicationText, margin + 20, yPos);
+        const indicationText = doc.splitTextToSize(med.indications, pageWidth - margin * 2 - 30);
+        doc.text(indicationText, margin + 25, yPos);
         yPos += indicationText.length * 4 + 2;
       }
 
@@ -253,11 +344,11 @@ export const generatePrescriptionPDF = (
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(180, 50, 50);
-        doc.text('Avoid: ', margin + 8, yPos);
+        doc.text(`${labels.avoid}: `, margin + 8, yPos);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
-        const avoidText = doc.splitTextToSize(med.contraIndications, pageWidth - margin * 2 - 25);
-        doc.text(avoidText, margin + 24, yPos);
+        const avoidText = doc.splitTextToSize(med.contraIndications, pageWidth - margin * 2 - 30);
+        doc.text(avoidText, margin + 28, yPos);
         yPos += avoidText.length * 4 + 2;
       }
 
@@ -270,11 +361,11 @@ export const generatePrescriptionPDF = (
         doc.setFontSize(9);
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(34, 139, 34);
-        doc.text('Do: ', margin + 8, yPos);
+        doc.text(`${labels.do}: `, margin + 8, yPos);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(60, 60, 60);
-        const notesText = doc.splitTextToSize(med.notes, pageWidth - margin * 2 - 20);
-        doc.text(notesText, margin + 18, yPos);
+        const notesText = doc.splitTextToSize(med.notes, pageWidth - margin * 2 - 25);
+        doc.text(notesText, margin + 20, yPos);
         yPos += notesText.length * 4 + 2;
       }
 
@@ -293,7 +384,7 @@ export const generatePrescriptionPDF = (
     doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 102, 153);
-    doc.text('ADVICE', margin, yPos);
+    doc.text(labels.advice, margin, yPos);
     yPos += 6;
     
     doc.setFontSize(10);
@@ -318,21 +409,29 @@ export const generatePrescriptionPDF = (
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(200, 100, 0);
-    doc.text('Follow-up Date:', margin + 5, yPos + 5);
+    doc.text(`${labels.followUpDate}:`, margin + 5, yPos + 5);
     doc.setFont('helvetica', 'normal');
-    doc.text(format(new Date(prescription.follow_up_date), 'EEEE, dd MMMM yyyy'), margin + 45, yPos + 5);
+    doc.text(format(new Date(prescription.follow_up_date), 'EEEE, dd MMMM yyyy'), margin + 70, yPos + 5);
   }
 
   // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 20;
-  doc.setDrawColor(200, 200, 200);
+  const footerY = doc.internal.pageSize.getHeight() - 25;
+  doc.setDrawColor(0, 102, 153);
+  doc.setLineWidth(0.3);
   doc.line(margin, footerY - 10, pageWidth - margin, footerY - 10);
   
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
-  doc.text('This prescription is computer-generated and is valid without a signature.', pageWidth / 2, footerY - 3, { align: 'center' });
-  doc.text(`Generated on ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth / 2, footerY + 3, { align: 'center' });
+  
+  if (language === 'hi') {
+    doc.text(HINDI_LABELS.footer, pageWidth / 2, footerY - 3, { align: 'center' });
+    doc.text(HINDI_LABELS.footerHindi, pageWidth / 2, footerY + 3, { align: 'center' });
+  } else {
+    doc.text(labels.footer, pageWidth / 2, footerY - 3, { align: 'center' });
+  }
+  doc.text(`${labels.generatedOn}: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth / 2, footerY + 9, { align: 'center' });
 
   // Save the PDF
-  doc.save(`${prescription.prescription_no}.pdf`);
+  const suffix = language === 'hi' ? '_Hindi' : '';
+  doc.save(`${prescription.prescription_no}${suffix}.pdf`);
 };

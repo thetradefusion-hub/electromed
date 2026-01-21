@@ -4,7 +4,7 @@ import { usePrescriptions, Prescription } from '@/hooks/usePrescriptions';
 import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import { exportPrescriptionsToCSV } from '@/utils/exportUtils';
 import { useWhatsAppShare } from '@/hooks/useWhatsAppShare';
-import { Search, FileText, Download, Printer, Eye, Calendar, User, Pill, Loader2, MessageCircle } from 'lucide-react';
+import { Search, FileText, Download, Printer, Eye, Calendar, User, Pill, Loader2, MessageCircle, Languages } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -45,7 +45,7 @@ export default function Prescriptions() {
       rx.prescription_no.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDownloadPDF = (rx: Prescription) => {
+  const handleDownloadPDF = (rx: Prescription, language: 'en' | 'hi' = 'en') => {
     if (!rx.patient || !doctorInfo) return;
 
     generatePrescriptionPDF(
@@ -66,7 +66,8 @@ export default function Prescriptions() {
         mobile: rx.patient.mobile,
         address: rx.patient.address,
       },
-      doctorInfo
+      doctorInfo,
+      language
     );
   };
 
@@ -358,9 +359,16 @@ export default function Prescriptions() {
                     className="flex-1 medical-btn-primary"
                   >
                     <Download className="h-4 w-4" />
-                    Download PDF
+                    PDF (EN)
                   </button>
                 </div>
+                <button 
+                  onClick={() => handleDownloadPDF(selectedPrescription, 'hi')}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-primary bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+                >
+                  <Languages className="h-4 w-4" />
+                  Download PDF (हिंदी)
+                </button>
               </div>
             </div>
           ) : (

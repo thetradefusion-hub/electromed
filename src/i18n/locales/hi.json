@@ -172,12 +172,47 @@
     "createdAt": "बनाया गया",
     "viewPrescription": "प्रिस्क्रिप्शन देखें",
     "downloadPdf": "PDF डाउनलोड करें",
+    "downloadPdfHindi": "PDF डाउनलोड करें (हिंदी)",
     "shareWhatsapp": "व्हाट्सएप पर साझा करें",
     "noPrescriptions": "कोई प्रिस्क्रिप्शन नहीं मिला",
     "medicine": "दवाई",
     "dosage": "खुराक",
     "duration": "अवधि",
     "instructions": "निर्देश"
+  },
+  "prescription": {
+    "clinicName": "क्लिनिक का नाम",
+    "electroHomoeopathy": "इलेक्ट्रो-होम्योपैथी प्रिस्क्रिप्शन",
+    "prescriptionNo": "प्रिस्क्रिप्शन नंबर",
+    "date": "तारीख",
+    "patientName": "मरीज़ का नाम",
+    "patientId": "मरीज़ आईडी",
+    "ageGender": "आयु/लिंग",
+    "mobile": "मोबाइल",
+    "symptoms": "लक्षण",
+    "diagnosis": "निदान",
+    "rx": "Rx",
+    "medicineDetailsTitle": "दवाई विवरण एवं लाभ",
+    "use": "उपयोग",
+    "avoid": "परहेज़",
+    "do": "करें",
+    "advice": "सलाह",
+    "followUpDate": "फॉलो-अप की तारीख",
+    "footer": "यह प्रिस्क्रिप्शन कंप्यूटर द्वारा जनरेट है और बिना हस्ताक्षर के मान्य है।",
+    "generatedOn": "जनरेट की तारीख",
+    "severity": {
+      "low": "हल्का",
+      "medium": "मध्यम",
+      "high": "गंभीर"
+    },
+    "durationUnits": {
+      "days": "दिन",
+      "weeks": "सप्ताह",
+      "months": "महीने"
+    },
+    "dosageLabel": "खुराक",
+    "durationLabel": "अवधि",
+    "instructionsLabel": "निर्देश"
   },
   "symptoms": {
     "title": "लक्षण",
