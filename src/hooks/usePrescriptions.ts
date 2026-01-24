@@ -22,6 +22,14 @@ export interface PrescriptionMedicine {
   indications?: string;
   contraIndications?: string;
   notes?: string;
+  // AI-generated Hindi explanations
+  aiExplanation?: {
+    why: string;
+    howToUse: string;
+    potency: string;
+    precautions: string;
+    benefits: string[];
+  };
 }
 
 export interface Prescription {

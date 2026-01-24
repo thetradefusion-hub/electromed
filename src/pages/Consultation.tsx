@@ -6,6 +6,7 @@ import { useMedicines, Medicine } from '@/hooks/useMedicines';
 import { usePrescriptions, PrescriptionSymptom, PrescriptionMedicine } from '@/hooks/usePrescriptions';
 import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import { useWhatsAppShare } from '@/hooks/useWhatsAppShare';
+import { useAIMedicineExplainer, MedicineExplanation } from '@/hooks/useAIMedicineExplainer';
 import { MedicalReportAnalyzer } from '@/components/consultation/MedicalReportAnalyzer';
 import {
   User,
@@ -29,6 +30,7 @@ import {
   MessageCircle,
   ChevronDown,
   ChevronUp,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
@@ -51,6 +53,7 @@ interface SuggestedMedicine {
   dosage: string;
   duration: string;
   instructions: string;
+  aiExplanation?: MedicineExplanation;
 }
 
 interface Vitals {
@@ -92,6 +95,7 @@ export default function Consultation() {
   const { symptoms, loading: symptomsLoading } = useSymptoms();
   const { medicines } = useMedicines();
   const { createPrescription, doctorInfo } = usePrescriptions();
+  const { explainMedicines, isLoading: aiLoading } = useAIMedicineExplainer();
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
@@ -253,9 +257,39 @@ export default function Consultation() {
       });
     });
 
-    setSuggestedMedicines(Array.from(medicineMap.values()));
+    const suggestedList = Array.from(medicineMap.values());
+    setSuggestedMedicines(suggestedList);
     setShowSuggestions(true);
-    toast.success(`Found ${medicineMap.size} medicine suggestions`);
+    toast.success(`${suggestedList.length} दवाएं मिलीं, AI से हिंदी जानकारी प्राप्त हो रही है...`);
+
+    // Get AI explanations in Hindi
+    if (suggestedList.length > 0) {
+      const medicineInputs = suggestedList.map(sm => ({
+        name: sm.medicine.name,
+        category: sm.medicine.category,
+        indications: sm.medicine.indications || null,
+        dosage: sm.dosage,
+        duration: sm.duration,
+      }));
+
+      const symptomInputs = selectedSymptoms.map(ss => ({
+        name: ss.symptom.name,
+        severity: ss.severity,
+        duration: ss.duration,
+        durationUnit: ss.durationUnit,
+      }));
+
+      const explanations = await explainMedicines(medicineInputs, symptomInputs);
+      
+      if (explanations.length > 0) {
+        setSuggestedMedicines(prev => prev.map(sm => {
+          const explanation = explanations.find(
+            e => e.medicineName.toLowerCase() === sm.medicine.name.toLowerCase()
+          );
+          return explanation ? { ...sm, aiExplanation: explanation } : sm;
+        }));
+      }
+    }
   };
 
   const removeMedicine = (medicineId: string) => {
@@ -314,6 +348,7 @@ export default function Consultation() {
       indications: sm.medicine.indications || undefined,
       contraIndications: sm.medicine.contra_indications || undefined,
       notes: sm.medicine.notes || undefined,
+      aiExplanation: sm.aiExplanation,
     }));
 
     const followUpDate = addDays(new Date(), followUpDays).toISOString();
@@ -842,6 +877,12 @@ export default function Consultation() {
               </div>
             ) : (
               <div className="space-y-4">
+                {aiLoading && (
+                  <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    <span className="text-primary">AI से हिंदी जानकारी प्राप्त हो रही है...</span>
+                  </div>
+                )}
                 {suggestedMedicines.map((pm) => (
                   <div
                     key={pm.medicineId}
@@ -860,8 +901,46 @@ export default function Consultation() {
                       </button>
                     </div>
                     
-                    {/* Medicine Details Section */}
-                    {(pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
+                    {/* AI Hindi Explanation Section */}
+                    {pm.aiExplanation && (
+                      <div className="mb-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-3 space-y-2 border border-primary/20">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
+                          <Bot className="h-3.5 w-3.5" />
+                          AI विशेषज्ञ सुझाव
+                        </div>
+                        <div className="space-y-1.5">
+                          <div>
+                            <span className="text-xs font-medium text-green-600">क्यों:</span>
+                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.why}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-blue-600">कैसे लें:</span>
+                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.howToUse}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-purple-600">मात्रा/पोटेंसी:</span>
+                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.potency}</p>
+                          </div>
+                          <div>
+                            <span className="text-xs font-medium text-orange-600">सावधानी:</span>
+                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.precautions}</p>
+                          </div>
+                          {pm.aiExplanation.benefits.length > 0 && (
+                            <div>
+                              <span className="text-xs font-medium text-teal-600">फायदे:</span>
+                              <ul className="text-xs text-foreground/80 mt-0.5 list-disc list-inside">
+                                {pm.aiExplanation.benefits.map((b, i) => (
+                                  <li key={i}>{b}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Original Medicine Details Section */}
+                    {!pm.aiExplanation && (pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
                       <div className="mb-3 rounded-md bg-secondary/50 p-2 space-y-1.5">
                         {pm.medicine.indications && (
                           <div className="flex gap-2">

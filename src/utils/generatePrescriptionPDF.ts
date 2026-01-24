@@ -36,6 +36,13 @@ interface PrescriptionMedicine {
   indications?: string;
   contraIndications?: string;
   notes?: string;
+  aiExplanation?: {
+    why: string;
+    howToUse: string;
+    potency: string;
+    precautions: string;
+    benefits: string[];
+  };
 }
 
 interface PrescriptionData {
@@ -60,9 +67,15 @@ const HINDI_LABELS = {
   symptoms: 'लक्षण',
   diagnosis: 'निदान',
   medicineDetailsTitle: 'दवाई विवरण एवं लाभ',
+  aiExplanationTitle: 'AI विशेषज्ञ सुझाव',
   use: 'उपयोग',
   avoid: 'परहेज़',
   do: 'करें',
+  why: 'क्यों',
+  howToUse: 'कैसे लें',
+  potency: 'मात्रा/पोटेंसी',
+  precautions: 'सावधानी',
+  benefits: 'फायदे',
   advice: 'सलाह',
   followUpDate: 'फॉलो-अप की तारीख',
   footer: 'यह प्रिस्क्रिप्शन कंप्यूटर द्वारा जनरेट है और बिना हस्ताक्षर के मान्य है।',
@@ -99,9 +112,15 @@ const ENGLISH_LABELS = {
   symptoms: 'SYMPTOMS',
   diagnosis: 'DIAGNOSIS',
   medicineDetailsTitle: 'MEDICINE DETAILS & BENEFITS',
+  aiExplanationTitle: 'AI SPECIALIST RECOMMENDATIONS',
   use: 'Use',
   avoid: 'Avoid',
   do: 'Do',
+  why: 'Why',
+  howToUse: 'How to Use',
+  potency: 'Potency/Dosage',
+  precautions: 'Precautions',
+  benefits: 'Benefits',
   advice: 'ADVICE',
   followUpDate: 'Follow-up Date',
   footer: 'This prescription is computer-generated and is valid without a signature.',
@@ -416,6 +435,137 @@ export const generatePrescriptionPDF = async (
       }
 
       yPos += 3;
+    });
+
+    yPos += 5;
+  }
+
+  // AI Hindi Explanation Section
+  const medicinesWithAI = prescription.medicines.filter(med => med.aiExplanation);
+  
+  if (medicinesWithAI.length > 0) {
+    // Check for page break before adding section
+    if (yPos > 180) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    // Section Header with gradient-like background
+    doc.setFillColor(239, 246, 255); // Light blue
+    doc.setDrawColor(59, 130, 246); // Blue border
+    doc.roundedRect(margin, yPos - 2, pageWidth - 2 * margin, 10, 2, 2, 'FD');
+    
+    doc.setFontSize(11);
+    setFont(doc, language, 'normal');
+    doc.setTextColor(30, 64, 175);
+    doc.text(labels.aiExplanationTitle, margin + 5, yPos + 5);
+    yPos += 15;
+
+    medicinesWithAI.forEach((med) => {
+      const ai = med.aiExplanation!;
+      
+      // Check for page break
+      if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Medicine name header
+      doc.setFillColor(249, 250, 251);
+      doc.roundedRect(margin + 3, yPos - 3, pageWidth - 2 * margin - 6, 8, 1, 1, 'F');
+      doc.setFontSize(10);
+      setDefaultFont(doc, 'bold');
+      doc.setTextColor(30, 30, 30);
+      doc.text(`${med.name}`, margin + 6, yPos + 2);
+      yPos += 10;
+
+      // Why (क्यों)
+      doc.setFontSize(9);
+      setFont(doc, language, 'normal');
+      doc.setTextColor(22, 163, 74); // Green
+      doc.text(`${labels.why}: `, margin + 8, yPos);
+      setFont(doc, language, 'normal');
+      doc.setTextColor(60, 60, 60);
+      const whyText = doc.splitTextToSize(ai.why, pageWidth - margin * 2 - 35);
+      doc.text(whyText, margin + 25, yPos);
+      yPos += whyText.length * 4 + 3;
+
+      // Check page
+      if (yPos > 260) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // How to Use (कैसे लें)
+      setFont(doc, language, 'normal');
+      doc.setTextColor(37, 99, 235); // Blue
+      doc.text(`${labels.howToUse}: `, margin + 8, yPos);
+      setFont(doc, language, 'normal');
+      doc.setTextColor(60, 60, 60);
+      const howText = doc.splitTextToSize(ai.howToUse, pageWidth - margin * 2 - 40);
+      doc.text(howText, margin + 35, yPos);
+      yPos += howText.length * 4 + 3;
+
+      // Check page
+      if (yPos > 260) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Potency (मात्रा/पोटेंसी)
+      setFont(doc, language, 'normal');
+      doc.setTextColor(147, 51, 234); // Purple
+      doc.text(`${labels.potency}: `, margin + 8, yPos);
+      setFont(doc, language, 'normal');
+      doc.setTextColor(60, 60, 60);
+      const potencyText = doc.splitTextToSize(ai.potency, pageWidth - margin * 2 - 50);
+      doc.text(potencyText, margin + 45, yPos);
+      yPos += potencyText.length * 4 + 3;
+
+      // Check page
+      if (yPos > 260) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Precautions (सावधानी)
+      setFont(doc, language, 'normal');
+      doc.setTextColor(234, 88, 12); // Orange
+      doc.text(`${labels.precautions}: `, margin + 8, yPos);
+      setFont(doc, language, 'normal');
+      doc.setTextColor(60, 60, 60);
+      const precautionsText = doc.splitTextToSize(ai.precautions, pageWidth - margin * 2 - 40);
+      doc.text(precautionsText, margin + 35, yPos);
+      yPos += precautionsText.length * 4 + 3;
+
+      // Check page
+      if (yPos > 260) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Benefits (फायदे)
+      if (ai.benefits && ai.benefits.length > 0) {
+        setFont(doc, language, 'normal');
+        doc.setTextColor(20, 184, 166); // Teal
+        doc.text(`${labels.benefits}: `, margin + 8, yPos);
+        yPos += 4;
+        
+        setFont(doc, language, 'normal');
+        doc.setTextColor(60, 60, 60);
+        ai.benefits.forEach((benefit) => {
+          if (yPos > 265) {
+            doc.addPage();
+            yPos = 20;
+          }
+          const benefitText = doc.splitTextToSize(`• ${benefit}`, pageWidth - margin * 2 - 20);
+          doc.text(benefitText, margin + 12, yPos);
+          yPos += benefitText.length * 4;
+        });
+        yPos += 2;
+      }
+
+      yPos += 5;
     });
 
     yPos += 5;
