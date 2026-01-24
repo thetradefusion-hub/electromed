@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { format } from 'date-fns';
+import { registerDevanagariFont, setHindiFont, setDefaultFont } from './fonts/notoSansDevanagari';
 
 interface PatientInfo {
   name: string;
@@ -47,39 +48,44 @@ interface PrescriptionData {
   follow_up_date?: string | null;
 }
 
-// Hindi labels for prescription
+// Pure Hindi labels for prescription
 const HINDI_LABELS = {
-  electroHomoeopathy: 'Electro-Homoeopathy Prescription / इलेक्ट्रो-होम्योपैथी प्रिस्क्रिप्शन',
-  prescriptionNo: 'Prescription No / प्रिस्क्रिप्शन नंबर',
-  date: 'Date / तारीख',
-  patientName: 'Patient Name / मरीज़ का नाम',
-  patientId: 'Patient ID / मरीज़ आईडी',
-  ageGender: 'Age/Gender / आयु/लिंग',
-  mobile: 'Mobile / मोबाइल',
-  symptoms: 'SYMPTOMS / लक्षण',
-  diagnosis: 'DIAGNOSIS / निदान',
-  medicineDetailsTitle: 'MEDICINE DETAILS & BENEFITS / दवाई विवरण एवं लाभ',
-  use: 'Use / उपयोग',
-  avoid: 'Avoid / परहेज़',
-  do: 'Do / करें',
-  advice: 'ADVICE / सलाह',
-  followUpDate: 'Follow-up Date / फॉलो-अप की तारीख',
-  footer: 'This prescription is computer-generated and is valid without a signature.',
-  footerHindi: 'यह प्रिस्क्रिप्शन कंप्यूटर द्वारा जनरेट है और बिना हस्ताक्षर के मान्य है।',
-  generatedOn: 'Generated on / जनरेट की तारीख',
-  dosage: 'Dosage / खुराक',
-  duration: 'Duration / अवधि',
-  instructions: 'Instructions / निर्देश',
+  electroHomoeopathy: 'इलेक्ट्रो-होम्योपैथी प्रिस्क्रिप्शन',
+  prescriptionNo: 'प्रिस्क्रिप्शन नंबर',
+  date: 'तारीख',
+  patientName: 'मरीज़ का नाम',
+  patientId: 'मरीज़ आईडी',
+  ageGender: 'आयु/लिंग',
+  mobile: 'मोबाइल',
+  symptoms: 'लक्षण',
+  diagnosis: 'निदान',
+  medicineDetailsTitle: 'दवाई विवरण एवं लाभ',
+  use: 'उपयोग',
+  avoid: 'परहेज़',
+  do: 'करें',
+  advice: 'सलाह',
+  followUpDate: 'फॉलो-अप की तारीख',
+  footer: 'यह प्रिस्क्रिप्शन कंप्यूटर द्वारा जनरेट है और बिना हस्ताक्षर के मान्य है।',
+  generatedOn: 'जनरेट की तारीख',
+  dosage: 'खुराक',
+  duration: 'अवधि',
+  instructions: 'निर्देश',
   severity: {
-    low: 'Low / हल्का',
-    medium: 'Medium / मध्यम',
-    high: 'High / गंभीर'
+    low: 'हल्का',
+    medium: 'मध्यम',
+    high: 'गंभीर'
   },
   durationUnits: {
-    days: 'days / दिन',
-    weeks: 'weeks / सप्ताह',
-    months: 'months / महीने'
-  }
+    days: 'दिन',
+    weeks: 'सप्ताह',
+    months: 'महीने'
+  },
+  gender: {
+    male: 'पुरुष',
+    female: 'महिला',
+    other: 'अन्य'
+  },
+  years: 'वर्ष'
 };
 
 const ENGLISH_LABELS = {
@@ -112,38 +118,63 @@ const ENGLISH_LABELS = {
     days: 'days',
     weeks: 'weeks',
     months: 'months'
+  },
+  gender: {
+    male: 'Male',
+    female: 'Female',
+    other: 'Other'
+  },
+  years: 'y'
+};
+
+// Helper to set appropriate font based on language
+const setFont = (doc: jsPDF, language: 'en' | 'hi', style: 'normal' | 'bold' = 'normal'): void => {
+  if (language === 'hi') {
+    setHindiFont(doc);
+  } else {
+    setDefaultFont(doc, style);
   }
 };
 
-export const generatePrescriptionPDF = (
+export const generatePrescriptionPDF = async (
   prescription: PrescriptionData,
   patient: PatientInfo,
   doctor: DoctorInfo,
   language: 'en' | 'hi' = 'en'
-): void => {
+): Promise<void> => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 20;
   let yPos = 20;
   
   const labels = language === 'hi' ? HINDI_LABELS : ENGLISH_LABELS;
+  const isHindi = language === 'hi';
+
+  // Load Devanagari font for Hindi
+  if (isHindi) {
+    const fontLoaded = await registerDevanagariFont(doc);
+    if (!fontLoaded) {
+      console.warn('Devanagari font could not be loaded. Using default font with limited Hindi support.');
+    }
+  }
 
   // Header - Clinic Name
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
+  setDefaultFont(doc, 'bold');
   doc.setTextColor(0, 102, 153);
   doc.text(doctor.clinic_name || 'Medical Clinic', pageWidth / 2, yPos, { align: 'center' });
   yPos += 6;
 
   // Electro-Homoeopathy subtitle
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
+  setFont(doc, language, 'normal');
   doc.setTextColor(80, 80, 80);
   doc.text(labels.electroHomoeopathy, pageWidth / 2, yPos, { align: 'center' });
   yPos += 6;
 
   // Clinic Address
   doc.setFontSize(10);
+  setDefaultFont(doc, 'normal');
   doc.setTextColor(100, 100, 100);
   if (doctor.clinic_address) {
     doc.text(doctor.clinic_address, pageWidth / 2, yPos, { align: 'center' });
@@ -168,6 +199,7 @@ export const generatePrescriptionPDF = (
   // Prescription Info Row
   doc.setFontSize(10);
   doc.setTextColor(50, 50, 50);
+  setFont(doc, language, 'normal');
   doc.text(`${labels.prescriptionNo}: ${prescription.prescription_no}`, margin, yPos);
   doc.text(`${labels.date}: ${format(new Date(prescription.created_at), 'dd MMM yyyy')}`, pageWidth - margin, yPos, { align: 'right' });
   yPos += 12;
@@ -179,22 +211,35 @@ export const generatePrescriptionPDF = (
   
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
+  setFont(doc, language, 'normal');
   doc.text(labels.patientName, margin + 5, yPos + 2);
   doc.text(labels.patientId, margin + 70, yPos + 2);
   doc.text(labels.ageGender, margin + 120, yPos + 2);
   
   doc.setFontSize(11);
   doc.setTextColor(30, 30, 30);
-  doc.setFont('helvetica', 'bold');
+  setDefaultFont(doc, 'bold');
   doc.text(patient.name, margin + 5, yPos + 10);
-  doc.setFont('helvetica', 'normal');
+  setDefaultFont(doc, 'normal');
   doc.text(patient.patient_id, margin + 70, yPos + 10);
-  const genderText = patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1);
-  doc.text(`${patient.age}y / ${genderText}`, margin + 120, yPos + 10);
+  
+  // Gender text with translation
+  const genderKey = patient.gender.toLowerCase() as keyof typeof labels.gender;
+  const genderText = isHindi 
+    ? (labels.gender[genderKey] || patient.gender)
+    : patient.gender.charAt(0).toUpperCase() + patient.gender.slice(1);
+  
+  setFont(doc, language, 'normal');
+  const ageGenderText = isHindi 
+    ? `${patient.age} ${labels.years} / ${genderText}`
+    : `${patient.age}${labels.years} / ${genderText}`;
+  doc.text(ageGenderText, margin + 120, yPos + 10);
   
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
+  setFont(doc, language, 'normal');
   doc.text(labels.mobile, margin + 5, yPos + 18);
+  setDefaultFont(doc, 'normal');
   doc.setTextColor(30, 30, 30);
   doc.text(patient.mobile, margin + 30, yPos + 18);
   yPos += 34;
@@ -202,13 +247,13 @@ export const generatePrescriptionPDF = (
   // Symptoms Section
   if (prescription.symptoms.length > 0) {
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
+    setFont(doc, language, 'normal');
     doc.setTextColor(0, 102, 153);
     doc.text(labels.symptoms, margin, yPos);
     yPos += 6;
     
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    setFont(doc, language, 'normal');
     doc.setTextColor(50, 50, 50);
     
     const getSeverityLabel = (severity: string) => {
@@ -232,13 +277,13 @@ export const generatePrescriptionPDF = (
   // Diagnosis Section
   if (prescription.diagnosis) {
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
+    setFont(doc, language, 'normal');
     doc.setTextColor(0, 102, 153);
     doc.text(labels.diagnosis, margin, yPos);
     yPos += 6;
     
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    setFont(doc, language, 'normal');
     doc.setTextColor(50, 50, 50);
     const diagLines = doc.splitTextToSize(prescription.diagnosis, pageWidth - 2 * margin);
     doc.text(diagLines, margin, yPos);
@@ -247,7 +292,7 @@ export const generatePrescriptionPDF = (
 
   // Medicines Section - Rx
   doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
+  setDefaultFont(doc, 'bold');
   doc.setTextColor(0, 102, 153);
   doc.text('Rx', margin, yPos);
   yPos += 8;
@@ -260,16 +305,17 @@ export const generatePrescriptionPDF = (
     }
 
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
+    setDefaultFont(doc, 'bold');
     doc.setTextColor(30, 30, 30);
     doc.text(`${index + 1}. ${med.name}`, margin + 5, yPos);
     
     doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
+    setDefaultFont(doc, 'normal');
     doc.setTextColor(100, 100, 100);
     doc.text(`(${med.category})`, margin + 5 + doc.getTextWidth(`${index + 1}. ${med.name}`) + 2, yPos);
     yPos += 5;
     
+    setFont(doc, language, 'normal');
     doc.setTextColor(50, 50, 50);
     doc.text(`${labels.dosage}: ${med.dosage}`, margin + 10, yPos);
     doc.text(`${labels.duration}: ${med.duration}`, margin + 90, yPos);
@@ -303,7 +349,7 @@ export const generatePrescriptionPDF = (
     doc.roundedRect(margin, yPos - 2, pageWidth - 2 * margin, 10, 2, 2, 'FD');
     
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
+    setFont(doc, language, 'normal');
     doc.setTextColor(22, 101, 52);
     doc.text(labels.medicineDetailsTitle, margin + 5, yPos + 5);
     yPos += 15;
@@ -317,7 +363,7 @@ export const generatePrescriptionPDF = (
 
       // Medicine name
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
+      setDefaultFont(doc, 'bold');
       doc.setTextColor(30, 30, 30);
       doc.text(`${med.name}:`, margin + 5, yPos);
       yPos += 5;
@@ -325,10 +371,10 @@ export const generatePrescriptionPDF = (
       // Indications/Use
       if (med.indications) {
         doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
+        setFont(doc, language, 'normal');
         doc.setTextColor(0, 102, 153);
         doc.text(`${labels.use}: `, margin + 8, yPos);
-        doc.setFont('helvetica', 'normal');
+        setFont(doc, language, 'normal');
         doc.setTextColor(60, 60, 60);
         const indicationText = doc.splitTextToSize(med.indications, pageWidth - margin * 2 - 30);
         doc.text(indicationText, margin + 25, yPos);
@@ -342,10 +388,10 @@ export const generatePrescriptionPDF = (
           yPos = 20;
         }
         doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
+        setFont(doc, language, 'normal');
         doc.setTextColor(180, 50, 50);
         doc.text(`${labels.avoid}: `, margin + 8, yPos);
-        doc.setFont('helvetica', 'normal');
+        setFont(doc, language, 'normal');
         doc.setTextColor(60, 60, 60);
         const avoidText = doc.splitTextToSize(med.contraIndications, pageWidth - margin * 2 - 30);
         doc.text(avoidText, margin + 28, yPos);
@@ -359,10 +405,10 @@ export const generatePrescriptionPDF = (
           yPos = 20;
         }
         doc.setFontSize(9);
-        doc.setFont('helvetica', 'bold');
+        setFont(doc, language, 'normal');
         doc.setTextColor(34, 139, 34);
         doc.text(`${labels.do}: `, margin + 8, yPos);
-        doc.setFont('helvetica', 'normal');
+        setFont(doc, language, 'normal');
         doc.setTextColor(60, 60, 60);
         const notesText = doc.splitTextToSize(med.notes, pageWidth - margin * 2 - 25);
         doc.text(notesText, margin + 20, yPos);
@@ -382,13 +428,13 @@ export const generatePrescriptionPDF = (
       yPos = 20;
     }
     doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
+    setFont(doc, language, 'normal');
     doc.setTextColor(0, 102, 153);
     doc.text(labels.advice, margin, yPos);
     yPos += 6;
     
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    setFont(doc, language, 'normal');
     doc.setTextColor(50, 50, 50);
     const adviceLines = doc.splitTextToSize(prescription.advice, pageWidth - 2 * margin);
     doc.text(adviceLines, margin, yPos);
@@ -407,10 +453,10 @@ export const generatePrescriptionPDF = (
     doc.roundedRect(margin, yPos - 4, pageWidth - 2 * margin, 16, 3, 3, 'FD');
     
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
+    setFont(doc, language, 'normal');
     doc.setTextColor(200, 100, 0);
     doc.text(`${labels.followUpDate}:`, margin + 5, yPos + 5);
-    doc.setFont('helvetica', 'normal');
+    setDefaultFont(doc, 'normal');
     doc.text(format(new Date(prescription.follow_up_date), 'EEEE, dd MMMM yyyy'), margin + 70, yPos + 5);
   }
 
@@ -423,13 +469,9 @@ export const generatePrescriptionPDF = (
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   
-  if (language === 'hi') {
-    doc.text(HINDI_LABELS.footer, pageWidth / 2, footerY - 3, { align: 'center' });
-    doc.text(HINDI_LABELS.footerHindi, pageWidth / 2, footerY + 3, { align: 'center' });
-  } else {
-    doc.text(labels.footer, pageWidth / 2, footerY - 3, { align: 'center' });
-  }
-  doc.text(`${labels.generatedOn}: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth / 2, footerY + 9, { align: 'center' });
+  setFont(doc, language, 'normal');
+  doc.text(labels.footer, pageWidth / 2, footerY - 3, { align: 'center' });
+  doc.text(`${labels.generatedOn}: ${format(new Date(), 'dd MMM yyyy, HH:mm')}`, pageWidth / 2, footerY + 6, { align: 'center' });
 
   // Save the PDF
   const suffix = language === 'hi' ? '_Hindi' : '';

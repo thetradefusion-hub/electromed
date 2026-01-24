@@ -342,7 +342,7 @@ export default function Consultation() {
     setGenerating(false);
 
     if (prescription) {
-      generatePrescriptionPDF(
+      await generatePrescriptionPDF(
         {
           prescription_no: prescription.prescription_no,
           created_at: prescription.created_at,

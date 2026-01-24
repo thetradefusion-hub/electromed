@@ -224,34 +224,39 @@ export default function PatientHistory() {
     window.print();
   };
 
-  const handleDownloadPrescription = (prescription: Prescription, e: React.MouseEvent) => {
+  const handleDownloadPrescription = async (prescription: Prescription, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent expanding/collapsing
     if (!patient || !doctorInfo) {
       toast.error('Unable to generate prescription. Please try again.');
       return;
     }
 
-    generatePrescriptionPDF(
-      {
-        prescription_no: prescription.prescription_no,
-        created_at: prescription.created_at,
-        symptoms: prescription.symptoms,
-        medicines: prescription.medicines,
-        diagnosis: prescription.diagnosis,
-        advice: prescription.advice,
-        follow_up_date: prescription.follow_up_date,
-      },
-      {
-        name: patient.name,
-        patient_id: patient.patient_id,
-        age: patient.age,
-        gender: patient.gender,
-        mobile: patient.mobile,
-        address: patient.address,
-      },
-      doctorInfo
-    );
-    toast.success(`Prescription ${prescription.prescription_no} downloaded`);
+    try {
+      await generatePrescriptionPDF(
+        {
+          prescription_no: prescription.prescription_no,
+          created_at: prescription.created_at,
+          symptoms: prescription.symptoms,
+          medicines: prescription.medicines,
+          diagnosis: prescription.diagnosis,
+          advice: prescription.advice,
+          follow_up_date: prescription.follow_up_date,
+        },
+        {
+          name: patient.name,
+          patient_id: patient.patient_id,
+          age: patient.age,
+          gender: patient.gender,
+          mobile: patient.mobile,
+          address: patient.address,
+        },
+        doctorInfo
+      );
+      toast.success(`Prescription ${prescription.prescription_no} downloaded`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate prescription PDF');
+    }
   };
 
   const handleWhatsAppShare = (prescription: Prescription, e: React.MouseEvent) => {
