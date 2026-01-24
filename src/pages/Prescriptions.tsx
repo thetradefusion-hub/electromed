@@ -45,30 +45,43 @@ export default function Prescriptions() {
       rx.prescription_no.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDownloadPDF = (rx: Prescription, language: 'en' | 'hi' = 'en') => {
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+
+  const handleDownloadPDF = async (rx: Prescription, language: 'en' | 'hi' = 'en') => {
     if (!rx.patient || !doctorInfo) return;
 
-    generatePrescriptionPDF(
-      {
-        prescription_no: rx.prescription_no,
-        created_at: rx.created_at,
-        symptoms: rx.symptoms,
-        medicines: rx.medicines,
-        diagnosis: rx.diagnosis,
-        advice: rx.advice,
-        follow_up_date: rx.follow_up_date,
-      },
-      {
-        name: rx.patient.name,
-        patient_id: rx.patient.patient_id,
-        age: rx.patient.age,
-        gender: rx.patient.gender,
-        mobile: rx.patient.mobile,
-        address: rx.patient.address,
-      },
-      doctorInfo,
-      language
-    );
+    setGeneratingPdf(true);
+    try {
+      await generatePrescriptionPDF(
+        {
+          prescription_no: rx.prescription_no,
+          created_at: rx.created_at,
+          symptoms: rx.symptoms,
+          medicines: rx.medicines,
+          diagnosis: rx.diagnosis,
+          advice: rx.advice,
+          follow_up_date: rx.follow_up_date,
+        },
+        {
+          name: rx.patient.name,
+          patient_id: rx.patient.patient_id,
+          age: rx.patient.age,
+          gender: rx.patient.gender,
+          mobile: rx.patient.mobile,
+          address: rx.patient.address,
+        },
+        doctorInfo,
+        language
+      );
+      if (language === 'hi') {
+        toast.success('Hindi PDF generated with Devanagari font');
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   const handlePrint = (rx: Prescription) => {
