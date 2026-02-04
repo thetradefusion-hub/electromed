@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.explain-medicines]
 verify_jwt = false
+
+[functions.explain-symptoms]
+verify_jwt = false

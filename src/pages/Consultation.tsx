@@ -7,7 +7,9 @@ import { usePrescriptions, PrescriptionSymptom, PrescriptionMedicine } from '@/h
 import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import { useWhatsAppShare } from '@/hooks/useWhatsAppShare';
 import { useAIMedicineExplainer, MedicineExplanation } from '@/hooks/useAIMedicineExplainer';
+import { useAISymptomExplainer } from '@/hooks/useAISymptomExplainer';
 import { MedicalReportAnalyzer } from '@/components/consultation/MedicalReportAnalyzer';
+import { SymptomExplanationCard } from '@/components/consultation/SymptomExplanationCard';
 import {
   User,
   Search,
@@ -31,6 +33,7 @@ import {
   ChevronDown,
   ChevronUp,
   Bot,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
@@ -96,6 +99,8 @@ export default function Consultation() {
   const { medicines } = useMedicines();
   const { createPrescription, doctorInfo } = usePrescriptions();
   const { explainMedicines, isLoading: aiLoading } = useAIMedicineExplainer();
+  const { explainSymptoms, getExplanation, isLoading: symptomAiLoading } = useAISymptomExplainer();
+  const [expandedSymptomId, setExpandedSymptomId] = useState<string | null>(null);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
@@ -703,52 +708,99 @@ export default function Consultation() {
 
             {selectedSymptoms.length > 0 && (
               <div className="mb-4 space-y-3">
-                {selectedSymptoms.map((ss) => (
-                  <div
-                    key={ss.symptomId}
-                    className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-3"
-                  >
-                    <span className="font-medium text-foreground">{ss.symptom.name}</span>
-                    <select
-                      value={ss.severity}
-                      onChange={(e) => updateSymptom(ss.symptomId, 'severity', e.target.value)}
-                      className={cn(
-                        "rounded-lg border px-2 py-1 text-sm",
-                        ss.severity === 'high' && "border-red-300 bg-red-50 text-red-700",
-                        ss.severity === 'medium' && "border-yellow-300 bg-yellow-50 text-yellow-700",
-                        ss.severity === 'low' && "border-green-300 bg-green-50 text-green-700"
+                {selectedSymptoms.map((ss) => {
+                  const explanation = getExplanation(ss.symptom.name);
+                  const isExpanded = expandedSymptomId === ss.symptomId;
+                  
+                  return (
+                    <div
+                      key={ss.symptomId}
+                      className="rounded-lg border border-border bg-card p-3"
+                    >
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="font-medium text-foreground">{ss.symptom.name}</span>
+                        <select
+                          value={ss.severity}
+                          onChange={(e) => updateSymptom(ss.symptomId, 'severity', e.target.value)}
+                          className={cn(
+                            "rounded-lg border px-2 py-1 text-sm",
+                            ss.severity === 'high' && "border-red-300 bg-red-50 text-red-700",
+                            ss.severity === 'medium' && "border-yellow-300 bg-yellow-50 text-yellow-700",
+                            ss.severity === 'low' && "border-green-300 bg-green-50 text-green-700"
+                          )}
+                        >
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={ss.duration}
+                            onChange={(e) => updateSymptom(ss.symptomId, 'duration', parseInt(e.target.value) || 1)}
+                            min="1"
+                            className="w-16 rounded-lg border border-input bg-background px-2 py-1 text-sm"
+                          />
+                          <select
+                            value={ss.durationUnit}
+                            onChange={(e) => updateSymptom(ss.symptomId, 'durationUnit', e.target.value)}
+                            className="rounded-lg border border-input bg-background px-2 py-1 text-sm"
+                          >
+                            <option value="days">Days</option>
+                            <option value="weeks">Weeks</option>
+                            <option value="months">Months</option>
+                          </select>
+                        </div>
+                        
+                        {/* Medical Info Button */}
+                        <button
+                          onClick={async () => {
+                            if (isExpanded) {
+                              setExpandedSymptomId(null);
+                            } else {
+                              setExpandedSymptomId(ss.symptomId);
+                              if (!explanation) {
+                                await explainSymptoms([{
+                                  id: ss.symptomId,
+                                  name: ss.symptom.name,
+                                  category: ss.symptom.category,
+                                  severity: ss.severity,
+                                  duration: ss.duration,
+                                  durationUnit: ss.durationUnit,
+                                }]);
+                              }
+                            }
+                          }}
+                          className={cn(
+                            "flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs transition-colors",
+                            isExpanded 
+                              ? "bg-blue-100 text-blue-700 border border-blue-300" 
+                              : "bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200"
+                          )}
+                          title="View medical information"
+                        >
+                          <BookOpen className="h-3.5 w-3.5" />
+                          {isExpanded ? 'Hide Info' : 'Medical Info'}
+                        </button>
+                        
+                        <button
+                          onClick={() => removeSymptom(ss.symptomId)}
+                          className="ml-auto text-muted-foreground hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      
+                      {/* Expanded Medical Explanation */}
+                      {isExpanded && (
+                        <SymptomExplanationCard 
+                          explanation={explanation!} 
+                          isLoading={symptomAiLoading && !explanation}
+                        />
                       )}
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={ss.duration}
-                        onChange={(e) => updateSymptom(ss.symptomId, 'duration', parseInt(e.target.value) || 1)}
-                        min="1"
-                        className="w-16 rounded-lg border border-input bg-background px-2 py-1 text-sm"
-                      />
-                      <select
-                        value={ss.durationUnit}
-                        onChange={(e) => updateSymptom(ss.symptomId, 'durationUnit', e.target.value)}
-                        className="rounded-lg border border-input bg-background px-2 py-1 text-sm"
-                      >
-                        <option value="days">Days</option>
-                        <option value="weeks">Weeks</option>
-                        <option value="months">Months</option>
-                      </select>
                     </div>
-                    <button
-                      onClick={() => removeSymptom(ss.symptomId)}
-                      className="ml-auto text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
