@@ -247,6 +247,9 @@ const Landing = () => {
               <Link to="/auth">
                 <Button variant="ghost" className="font-semibold">Login</Button>
               </Link>
+              <Link to="/patient-auth">
+                <Button variant="outline" className="font-semibold rounded-xl">Patient Login</Button>
+              </Link>
               <Link to="/auth">
                 <Button className="gap-2 rounded-xl px-6 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all">
                   Start Free Trial
@@ -282,7 +285,10 @@ const Landing = () => {
             </a>
             <div className="pt-6 space-y-3 border-t border-border">
               <Link to="/auth" className="block" onClick={() => setMobileMenuOpen(false)}>
-                <Button variant="outline" className="w-full rounded-xl h-14 text-base font-semibold">Login</Button>
+                <Button variant="outline" className="w-full rounded-xl h-14 text-base font-semibold">Doctor Login</Button>
+              </Link>
+              <Link to="/patient-auth" className="block" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="secondary" className="w-full rounded-xl h-14 text-base font-semibold">Patient Login</Button>
               </Link>
               <Link to="/auth" className="block" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="w-full rounded-xl h-14 text-base font-semibold gap-2 shadow-lg">
