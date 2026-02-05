@@ -24,6 +24,9 @@ import Landing from "./pages/Landing";
 import Appointments from "./pages/Appointments";
 import BookAppointment from "./pages/BookAppointment";
 import Symptoms from "./pages/Symptoms";
+import PatientAuth from "./pages/PatientAuth";
+import PatientPortal from "./pages/PatientPortal";
+import ProtectedPatientRoute from "./components/ProtectedPatientRoute";
 
 const queryClient = new QueryClient();
 
@@ -37,7 +40,16 @@ const App = () => (
           <Routes>
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/patient-auth" element={<PatientAuth />} />
             <Route path="/book" element={<BookAppointment />} />
+            <Route
+              path="/patient-portal"
+              element={
+                <ProtectedPatientRoute>
+                  <PatientPortal />
+                </ProtectedPatientRoute>
+              }
+            />
             <Route
               path="/"
               element={

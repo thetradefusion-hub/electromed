@@ -30,7 +30,7 @@ interface NavItem {
   icon: React.ElementType;
   labelKey: string;
   path: string;
-  roles?: ('super_admin' | 'doctor' | 'staff')[];
+  roles?: ('super_admin' | 'doctor' | 'staff' | 'patient')[];
 }
 
 const navItems: NavItem[] = [
