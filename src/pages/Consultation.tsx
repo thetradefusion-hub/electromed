@@ -10,6 +10,7 @@ import { useAIMedicineExplainer, MedicineExplanation } from '@/hooks/useAIMedici
 import { useAISymptomExplainer } from '@/hooks/useAISymptomExplainer';
 import { MedicalReportAnalyzer } from '@/components/consultation/MedicalReportAnalyzer';
 import { SymptomExplanationCard } from '@/components/consultation/SymptomExplanationCard';
+import { TreatmentSummaryCard } from '@/components/consultation/TreatmentSummaryCard';
 import {
   User,
   Search,
@@ -32,10 +33,9 @@ import {
   MessageCircle,
   ChevronDown,
   ChevronUp,
-  Bot,
   BookOpen,
   NotebookPen,
-  ScrollText,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
@@ -270,7 +270,7 @@ export default function Consultation() {
     const suggestedList = Array.from(medicineMap.values());
     setSuggestedMedicines(suggestedList);
     setShowSuggestions(true);
-    toast.success(`${suggestedList.length} दवाएं मिलीं, AI से जानकारी प्राप्त हो रही है...`);
+    toast.success(`${suggestedList.length} दवाएं मिलीं, Rule Engine से विश्लेषण हो रहा है...`);
 
     const symptomInputs = selectedSymptoms.map(ss => ({
       name: ss.symptom.name,
@@ -720,7 +720,7 @@ export default function Consultation() {
             <div className="mb-4">
               <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
                 <NotebookPen className="h-3.5 w-3.5 text-primary" />
-                रोगी की समस्या (Doctor's Notes)
+                रोगी की समस्या (Doctor's Observation)
               </label>
               <textarea
                 value={doctorNotes}
@@ -730,7 +730,7 @@ export default function Consultation() {
                 className="medical-input resize-none text-sm"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                यह नोट AI को बेहतर उपचार सारांश बनाने में मदद करेगा
+                यह नोट Rule Engine को बेहतर उपचार सारांश बनाने में मदद करेगा
               </p>
             </div>
 
@@ -897,34 +897,8 @@ export default function Consultation() {
             </button>
           </div>
 
-          {/* AI Treatment Summary */}
-          {(treatmentSummary || summaryLoading) && (
-            <div className="medical-card border-primary/30">
-              <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
-                <ScrollText className="h-5 w-5 text-primary" />
-                AI उपचार सारांश (Treatment Summary)
-                <Badge variant="secondary" className="ml-auto text-xs">
-                  <Bot className="h-3 w-3 mr-1" />
-                  AI Generated
-                </Badge>
-              </h3>
-              
-              {summaryLoading ? (
-                <div className="flex flex-col items-center justify-center py-8 gap-3">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    इलेक्ट्रो-होम्योपैथी विशेषज्ञ AI उपचार सारांश तैयार कर रहा है...
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-lg bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-primary/20 p-4 sm:p-6">
-                  <div className="prose prose-sm max-w-none text-foreground/90 whitespace-pre-line leading-relaxed text-sm">
-                    {treatmentSummary}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Treatment Summary */}
+          <TreatmentSummaryCard summary={treatmentSummary} isLoading={summaryLoading} />
 
           {/* Diagnosis & Advice */}
           <div className="medical-card">
@@ -1008,7 +982,7 @@ export default function Consultation() {
                 {aiLoading && (
                   <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm">
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-primary">AI से हिंदी जानकारी प्राप्त हो रही है...</span>
+                    <span className="text-primary">Rule Engine से विश्लेषण हो रहा है...</span>
                   </div>
                 )}
                 {suggestedMedicines.map((pm) => (
@@ -1033,8 +1007,8 @@ export default function Consultation() {
                     {pm.aiExplanation && (
                       <div className="mb-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-3 space-y-2 border border-primary/20">
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                          <Bot className="h-3.5 w-3.5" />
-                          AI विशेषज्ञ सुझाव
+                          <Database className="h-3.5 w-3.5" />
+                          विशेषज्ञ विश्लेषण
                         </div>
                         <div className="space-y-1.5">
                           <div>
