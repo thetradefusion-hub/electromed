@@ -34,6 +34,8 @@ import {
   ChevronUp,
   Bot,
   BookOpen,
+  NotebookPen,
+  ScrollText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
@@ -101,6 +103,9 @@ export default function Consultation() {
   const { explainMedicines, isLoading: aiLoading } = useAIMedicineExplainer();
   const { explainSymptoms, getExplanation, isLoading: symptomAiLoading } = useAISymptomExplainer();
   const [expandedSymptomId, setExpandedSymptomId] = useState<string | null>(null);
+  const [doctorNotes, setDoctorNotes] = useState('');
+  const [treatmentSummary, setTreatmentSummary] = useState('');
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
@@ -265,9 +270,16 @@ export default function Consultation() {
     const suggestedList = Array.from(medicineMap.values());
     setSuggestedMedicines(suggestedList);
     setShowSuggestions(true);
-    toast.success(`${suggestedList.length} दवाएं मिलीं, AI से हिंदी जानकारी प्राप्त हो रही है...`);
+    toast.success(`${suggestedList.length} दवाएं मिलीं, AI से जानकारी प्राप्त हो रही है...`);
 
-    // Get AI explanations in Hindi
+    const symptomInputs = selectedSymptoms.map(ss => ({
+      name: ss.symptom.name,
+      severity: ss.severity,
+      duration: ss.duration,
+      durationUnit: ss.durationUnit,
+    }));
+
+    // Get AI explanations and treatment summary in parallel
     if (suggestedList.length > 0) {
       const medicineInputs = suggestedList.map(sm => ({
         name: sm.medicine.name,
@@ -277,14 +289,21 @@ export default function Consultation() {
         duration: sm.duration,
       }));
 
-      const symptomInputs = selectedSymptoms.map(ss => ({
-        name: ss.symptom.name,
-        severity: ss.severity,
-        duration: ss.duration,
-        durationUnit: ss.durationUnit,
-      }));
+      // Start both AI calls in parallel
+      const explanationsPromise = explainMedicines(medicineInputs, symptomInputs);
+      
+      // Treatment summary call
+      setSummaryLoading(true);
+      const summaryPromise = supabase.functions.invoke('generate-treatment-summary', {
+        body: {
+          symptoms: symptomInputs,
+          medicines: medicineInputs,
+          patientInfo: patient ? { name: patient.name, age: patient.age, gender: patient.gender } : null,
+          doctorNotes: doctorNotes || null,
+        }
+      });
 
-      const explanations = await explainMedicines(medicineInputs, symptomInputs);
+      const [explanations, summaryResult] = await Promise.all([explanationsPromise, summaryPromise]);
       
       if (explanations.length > 0) {
         setSuggestedMedicines(prev => prev.map(sm => {
@@ -294,6 +313,14 @@ export default function Consultation() {
           return explanation ? { ...sm, aiExplanation: explanation } : sm;
         }));
       }
+
+      if (summaryResult.data?.summary) {
+        setTreatmentSummary(summaryResult.data.summary);
+      } else if (summaryResult.error) {
+        console.error('Treatment summary error:', summaryResult.error);
+        toast.error('उपचार सारांश प्राप्त नहीं हो सका');
+      }
+      setSummaryLoading(false);
     }
   };
 
@@ -411,6 +438,8 @@ export default function Consultation() {
       setDiagnosis('');
       setAdvice('');
       setVitals({ bloodPressure: '', temperature: '', weight: '', pulse: '' });
+      setDoctorNotes('');
+      setTreatmentSummary('');
 
       navigate('/prescriptions');
     }
@@ -687,6 +716,24 @@ export default function Consultation() {
               Record Symptoms
             </h3>
 
+            {/* Doctor's Observation Notes */}
+            <div className="mb-4">
+              <label className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-foreground">
+                <NotebookPen className="h-3.5 w-3.5 text-primary" />
+                रोगी की समस्या (Doctor's Notes)
+              </label>
+              <textarea
+                value={doctorNotes}
+                onChange={(e) => setDoctorNotes(e.target.value)}
+                placeholder="रोगी की समस्या अपनी बोलचाल की भाषा में लिखें... जैसे: पैरों में सूजन है, यूरिक एसिड बढ़ा हुआ है, जोड़ों में दर्द रहता है..."
+                rows={3}
+                className="medical-input resize-none text-sm"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                यह नोट AI को बेहतर उपचार सारांश बनाने में मदद करेगा
+              </p>
+            </div>
+
             {/* Quick Symptom Chips */}
             {quickSymptomChips.length > 0 && (
               <div className="mb-4">
@@ -849,6 +896,35 @@ export default function Consultation() {
               Get Medicine Suggestions
             </button>
           </div>
+
+          {/* AI Treatment Summary */}
+          {(treatmentSummary || summaryLoading) && (
+            <div className="medical-card border-primary/30">
+              <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
+                <ScrollText className="h-5 w-5 text-primary" />
+                AI उपचार सारांश (Treatment Summary)
+                <Badge variant="secondary" className="ml-auto text-xs">
+                  <Bot className="h-3 w-3 mr-1" />
+                  AI Generated
+                </Badge>
+              </h3>
+              
+              {summaryLoading ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    इलेक्ट्रो-होम्योपैथी विशेषज्ञ AI उपचार सारांश तैयार कर रहा है...
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-lg bg-gradient-to-br from-primary/5 via-background to-accent/5 border border-primary/20 p-4 sm:p-6">
+                  <div className="prose prose-sm max-w-none text-foreground/90 whitespace-pre-line leading-relaxed text-sm">
+                    {treatmentSummary}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Diagnosis & Advice */}
           <div className="medical-card">
