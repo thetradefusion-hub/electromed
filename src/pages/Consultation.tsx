@@ -119,28 +119,34 @@ export default function Consultation() {
     }
     const recognition = new SpeechRecognitionAPI();
     recognition.lang = 'hi-IN';
-    recognition.interimResults = true;
-    recognition.continuous = true;
-    let finalTranscript = doctorNotes;
+    recognition.interimResults = false; // Only final results — no unnecessary interim words
+    recognition.continuous = false; // Single utterance mode for cleaner input
+    recognition.maxAlternatives = 1;
+
+    const baseText = doctorNotes;
+
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += (finalTranscript ? ' ' : '') + t;
-        } else {
-          interim = t;
+      let recognized = '';
+      for (let i = 0; i < event.results.length; i++) {
+        const result = event.results[i];
+        // Only use result if confidence is acceptable (> 0.3) or confidence not available
+        const confidence = result[0].confidence;
+        if (result.isFinal && (confidence === undefined || confidence > 0.3)) {
+          recognized += result[0].transcript;
         }
       }
-      setDoctorNotes(finalTranscript + (interim ? ' ' + interim : ''));
+      if (recognized.trim()) {
+        setDoctorNotes(baseText ? baseText + ' ' + recognized.trim() : recognized.trim());
+      }
     };
     recognition.onend = () => {
       setIsListening(false);
-      setDoctorNotes(finalTranscript);
     };
-    recognition.onerror = () => {
+    recognition.onerror = (event: any) => {
       setIsListening(false);
-      toast.error('Voice input में error आई, दोबारा try करें');
+      if (event.error !== 'no-speech') {
+        toast.error('Voice input में error आई, दोबारा try करें');
+      }
     };
     recognitionRef.current = recognition;
     recognition.start();
@@ -222,8 +228,26 @@ export default function Consultation() {
       !selectedSymptoms.find((ss) => ss.symptomId === s.id)
   );
 
+  // Extract symptoms from doctor notes text by matching against symptoms DB
+  const extractedSymptomsFromNotes = useMemo(() => {
+    if (!doctorNotes.trim() || symptoms.length === 0) return [];
+    const notesLower = doctorNotes.toLowerCase();
+    return symptoms.filter(s => {
+      const nameLower = s.name.toLowerCase();
+      // Match if symptom name (or its words) appear in notes
+      if (notesLower.includes(nameLower)) return true;
+      // Also check individual words of symptom name (min 4 chars to avoid false matches)
+      const words = nameLower.split(' ').filter(w => w.length >= 4);
+      return words.length > 0 && words.some(w => notesLower.includes(w));
+    }).filter(s => !selectedSymptoms.find(ss => ss.symptomId === s.id));
+  }, [doctorNotes, symptoms, selectedSymptoms]);
+
   // Get quick symptom chips that match common symptoms
   const quickSymptomChips = useMemo(() => {
+    // If doctor has typed notes, show extracted symptoms; else show common symptoms
+    if (doctorNotes.trim() && extractedSymptomsFromNotes.length > 0) {
+      return extractedSymptomsFromNotes;
+    }
     return COMMON_SYMPTOMS.map(name => {
       const symptom = symptoms.find(s => 
         s.name.toLowerCase().includes(name.toLowerCase())
@@ -232,7 +256,7 @@ export default function Consultation() {
     }).filter((s): s is Symptom => 
       s !== undefined && !selectedSymptoms.find(ss => ss.symptomId === s.id)
     );
-  }, [symptoms, selectedSymptoms]);
+  }, [symptoms, selectedSymptoms, doctorNotes, extractedSymptomsFromNotes]);
 
   const groupedSymptoms = useMemo(() => {
     const groups: Record<string, Symptom[]> = {};
@@ -807,13 +831,27 @@ export default function Consultation() {
             {/* Quick Symptom Chips */}
             {quickSymptomChips.length > 0 && (
               <div className="mb-4">
-                <p className="mb-2 text-xs font-medium text-muted-foreground uppercase">Quick Add</p>
+                <p className="mb-2 text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
+                  {doctorNotes.trim() && extractedSymptomsFromNotes.length > 0 ? (
+                    <>
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      Notes से मिले Symptoms — Quick Add करें
+                    </>
+                  ) : (
+                    'Quick Add'
+                  )}
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {quickSymptomChips.slice(0, 8).map((symptom) => (
+                  {quickSymptomChips.slice(0, 10).map((symptom) => (
                     <button
                       key={symptom.id}
                       onClick={() => addSymptom(symptom)}
-                      className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm text-foreground transition-all hover:border-primary hover:bg-primary/5"
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all",
+                        doctorNotes.trim() && extractedSymptomsFromNotes.find(s => s.id === symptom.id)
+                          ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
+                          : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/5"
+                      )}
                     >
                       <Plus className="h-3 w-3 text-primary" />
                       {symptom.name}
