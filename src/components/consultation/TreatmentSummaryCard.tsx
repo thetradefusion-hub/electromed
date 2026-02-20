@@ -6,45 +6,74 @@ interface TreatmentSummaryCardProps {
   isLoading: boolean;
 }
 
-// Parse markdown-like summary into structured sections
-const parseSummary = (text: string) => {
-  const sections: { title: string; content: string; icon: 'shield' | 'beaker' | 'pill' | 'clipboard' | 'heart' }[] = [];
-  
-  // Split by bold headers like **Title**
-  const lines = text.split('\n');
-  let currentSection: { title: string; content: string; icon: 'shield' | 'beaker' | 'pill' | 'clipboard' | 'heart' } | null = null;
-  
-  const getIcon = (title: string): 'shield' | 'beaker' | 'pill' | 'clipboard' | 'heart' => {
-    const lower = title.toLowerCase();
-    if (lower.includes('अवस्था') || lower.includes('classification') || lower.includes('positive') || lower.includes('negative')) return 'shield';
-    if (lower.includes('सारांश') || lower.includes('उपचार') || lower.includes('treatment')) return 'beaker';
-    if (lower.includes('मिश्रण') || lower.includes('खुराक') || lower.includes('dosage') || lower.includes('तालिका')) return 'pill';
-    if (lower.includes('निर्देश') || lower.includes('सलाह') || lower.includes('instruction')) return 'heart';
-    return 'clipboard';
-  };
+interface ParsedSummary {
+  intro: string;
+  sections: { title: string; content: string; icon: IconKey }[];
+}
 
-  for (const line of lines) {
-    const headerMatch = line.match(/^\*\*(.+?)\*\*:?\s*$/);
-    const numberedHeaderMatch = line.match(/^\d+\.\s*\*\*(.+?)\*\*:?\s*$/);
-    
-    if (headerMatch || numberedHeaderMatch) {
-      if (currentSection) sections.push(currentSection);
-      const title = (headerMatch?.[1] || numberedHeaderMatch?.[1] || '').trim();
-      currentSection = { title, content: '', icon: getIcon(title) };
-    } else if (currentSection) {
-      currentSection.content += (currentSection.content ? '\n' : '') + line;
+type IconKey = 'shield' | 'beaker' | 'pill' | 'clipboard' | 'heart';
+
+const getIcon = (title: string): IconKey => {
+  const lower = title.toLowerCase();
+  if (lower.includes('सारांश') || lower.includes('उपचार')) return 'beaker';
+  if (lower.includes('मिश्रण') || lower.includes('खुराक') || lower.includes('तालिका')) return 'pill';
+  if (lower.includes('निर्देश') || lower.includes('सलाह')) return 'heart';
+  return 'clipboard';
+};
+
+const parseSummary = (text: string): ParsedSummary => {
+  // Remove INTRO_SECTION: marker if present
+  let cleaned = text.replace(/^INTRO_SECTION:\s*/i, '').trim();
+
+  // Split by ---SECTION_BREAK--- separator
+  const parts = cleaned.split(/---SECTION_BREAK---/g).map(p => p.trim()).filter(Boolean);
+
+  const intro = parts[0] || '';
+  const sections: ParsedSummary['sections'] = [];
+
+  for (let i = 1; i < parts.length; i++) {
+    const part = parts[i];
+    // Extract bold heading at start of section
+    const headingMatch = part.match(/^\*\*(.+?)\*\*:?\s*\n?([\s\S]*)/);
+    if (headingMatch) {
+      const title = headingMatch[1].trim();
+      const content = headingMatch[2].trim();
+      sections.push({ title, content, icon: getIcon(title) });
     } else {
-      // Content before any header
-      if (line.trim()) {
-        if (!currentSection) {
-          currentSection = { title: 'विश्लेषण', content: line, icon: 'shield' };
-        }
-      }
+      sections.push({ title: 'विवरण', content: part, icon: 'clipboard' });
     }
   }
-  if (currentSection) sections.push(currentSection);
-  
-  return sections;
+
+  // Fallback: if no SECTION_BREAKs, try old bold-header parsing
+  if (sections.length === 0 && parts.length === 1) {
+    const lines = text.split('\n');
+    let currentSection: { title: string; content: string; icon: IconKey } | null = null;
+    const fallbackSections: typeof sections = [];
+    let introLines: string[] = [];
+    let inIntro = true;
+
+    for (const line of lines) {
+      const headerMatch = line.match(/^\*\*(.+?)\*\*:?\s*$/) || line.match(/^\d+\.\s*\*\*(.+?)\*\*:?\s*$/);
+      if (headerMatch) {
+        inIntro = false;
+        if (currentSection) fallbackSections.push(currentSection);
+        const title = (headerMatch[1] || '').trim();
+        currentSection = { title, content: '', icon: getIcon(title) };
+      } else if (!inIntro && currentSection) {
+        currentSection.content += (currentSection.content ? '\n' : '') + line;
+      } else if (inIntro) {
+        introLines.push(line);
+      }
+    }
+    if (currentSection) fallbackSections.push(currentSection);
+
+    return {
+      intro: introLines.join('\n').trim(),
+      sections: fallbackSections,
+    };
+  }
+
+  return { intro, sections };
 };
 
 const iconMap = {
@@ -63,19 +92,34 @@ const iconColorMap = {
   heart: 'text-rose-600 bg-rose-100',
 };
 
+// Handle inline bold formatting **text**
+const InlineFormatted = ({ text }: { text: string }) => {
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+};
+
 // Format content: bold text, bullet points, tables
 const FormattedContent = ({ content }: { content: string }) => {
   const lines = content.trim().split('\n').filter(l => l.trim());
-  
+
   // Check if lines look like a table (contain | separator)
   const isTable = lines.some(l => l.includes('|') && l.split('|').length >= 3);
-  
+
   if (isTable) {
     const tableLines = lines.filter(l => l.includes('|'));
-    const rows = tableLines.map(l => 
-      l.split('|').map(cell => cell.trim()).filter(cell => cell && !cell.match(/^-+$/))
-    ).filter(r => r.length > 0);
-    
+    const rows = tableLines
+      .map(l => l.split('|').map(cell => cell.trim()).filter(cell => cell && !cell.match(/^-+$/)))
+      .filter(r => r.length > 0);
+
     if (rows.length > 1) {
       return (
         <div className="overflow-x-auto mt-2">
@@ -105,12 +149,11 @@ const FormattedContent = ({ content }: { content: string }) => {
       );
     }
   }
-  
+
   return (
     <div className="space-y-1.5 mt-1">
       {lines.map((line, i) => {
         const trimmed = line.trim();
-        // Bullet point
         if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.match(/^[\*\-]\s/)) {
           return (
             <div key={i} className="flex gap-2 text-sm text-foreground/85 pl-1">
@@ -129,25 +172,46 @@ const FormattedContent = ({ content }: { content: string }) => {
   );
 };
 
-// Handle inline bold formatting **text**
-const InlineFormatted = ({ text }: { text: string }) => {
-  const parts = text.split(/(\*\*.*?\*\*)/g);
+// Intro block renderer — styled differently, more narrative/prominent
+const IntroBlock = ({ text }: { text: string }) => {
+  const lines = text.trim().split('\n').filter(l => l.trim());
   return (
-    <>
-      {parts.map((part, i) => {
-        if (part.startsWith('**') && part.endsWith('**')) {
-          return <strong key={i} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </>
+    <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2 mb-5">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15">
+          <Shield className="h-3.5 w-3.5 text-primary" />
+        </div>
+        <span className="text-xs font-semibold text-primary uppercase tracking-wide">
+          रोग वर्गीकरण विश्लेषण
+        </span>
+      </div>
+      <div className="space-y-2">
+        {lines.map((line, i) => {
+          const trimmed = line.trim();
+          if (!trimmed) return null;
+          // Bold lines
+          if (trimmed.startsWith('**') || trimmed.match(/^\*\*/)) {
+            return (
+              <p key={i} className="text-sm font-semibold text-foreground leading-relaxed">
+                <InlineFormatted text={trimmed} />
+              </p>
+            );
+          }
+          return (
+            <p key={i} className="text-sm text-foreground/85 leading-relaxed">
+              <InlineFormatted text={trimmed} />
+            </p>
+          );
+        })}
+      </div>
+    </div>
   );
 };
 
 export const TreatmentSummaryCard = ({ summary, isLoading }: TreatmentSummaryCardProps) => {
   if (!summary && !isLoading) return null;
 
-  const sections = summary ? parseSummary(summary) : [];
+  const parsed = summary ? parseSummary(summary) : { intro: '', sections: [] };
 
   return (
     <div className="medical-card border-primary/20 overflow-hidden">
@@ -183,10 +247,14 @@ export const TreatmentSummaryCard = ({ summary, isLoading }: TreatmentSummaryCar
         </div>
       ) : (
         <div className="space-y-4">
-          {sections.map((section, index) => {
+          {/* Intro block always shown at top */}
+          {parsed.intro && <IntroBlock text={parsed.intro} />}
+
+          {/* Structured sections below */}
+          {parsed.sections.map((section, index) => {
             const IconComponent = iconMap[section.icon];
             const colorClass = iconColorMap[section.icon];
-            
+
             return (
               <div
                 key={index}
@@ -206,7 +274,7 @@ export const TreatmentSummaryCard = ({ summary, isLoading }: TreatmentSummaryCar
               </div>
             );
           })}
-          
+
           {/* Footer */}
           <div className="flex items-center gap-2 pt-2 border-t border-border/50">
             <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
