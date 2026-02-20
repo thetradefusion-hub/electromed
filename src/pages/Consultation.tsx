@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { usePatients } from '@/hooks/usePatients';
 import { useSymptoms, Symptom } from '@/hooks/useSymptoms';
@@ -33,6 +33,8 @@ import {
   MessageCircle,
   ChevronDown,
   ChevronUp,
+  Mic,
+  MicOff,
   BookOpen,
   NotebookPen,
   Database,
@@ -106,6 +108,49 @@ export default function Consultation() {
   const [doctorNotes, setDoctorNotes] = useState('');
   const [treatmentSummary, setTreatmentSummary] = useState('');
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const startVoiceInput = useCallback(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionAPI) {
+      toast.error('आपका browser voice input support नहीं करता');
+      return;
+    }
+    const recognition = new SpeechRecognitionAPI();
+    recognition.lang = 'hi-IN';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+    let finalTranscript = doctorNotes;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += (finalTranscript ? ' ' : '') + t;
+        } else {
+          interim = t;
+        }
+      }
+      setDoctorNotes(finalTranscript + (interim ? ' ' + interim : ''));
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+      setDoctorNotes(finalTranscript);
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+      toast.error('Voice input में error आई, दोबारा try करें');
+    };
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
+  }, [doctorNotes]);
+
+  const stopVoiceInput = useCallback(() => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  }, []);
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
@@ -722,15 +767,40 @@ export default function Consultation() {
                 <NotebookPen className="h-3.5 w-3.5 text-primary" />
                 रोगी की समस्या (Doctor's Observation)
               </label>
-              <textarea
-                value={doctorNotes}
-                onChange={(e) => setDoctorNotes(e.target.value)}
-                placeholder="रोगी की समस्या अपनी बोलचाल की भाषा में लिखें... जैसे: पैरों में सूजन है, यूरिक एसिड बढ़ा हुआ है, जोड़ों में दर्द रहता है..."
-                rows={3}
-                className="medical-input resize-none text-sm"
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                यह नोट Rule Engine को बेहतर उपचार सारांश बनाने में मदद करेगा
+              <div className="relative">
+                <textarea
+                  value={doctorNotes}
+                  onChange={(e) => setDoctorNotes(e.target.value)}
+                  placeholder="रोगी की समस्या अपनी बोलचाल की भाषा में लिखें... जैसे: पैरों में सूजन है, यूरिक एसिड बढ़ा हुआ है, जोड़ों में दर्द रहता है..."
+                  rows={3}
+                  className="medical-input resize-none text-sm pr-12"
+                />
+                <button
+                  type="button"
+                  onClick={isListening ? stopVoiceInput : startVoiceInput}
+                  title={isListening ? 'Recording बंद करें' : 'Voice से बोलें'}
+                  className={cn(
+                    "absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-lg transition-all",
+                    isListening
+                      ? "bg-destructive text-destructive-foreground shadow-md animate-pulse"
+                      : "bg-primary/10 text-primary hover:bg-primary/20"
+                  )}
+                >
+                  {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground flex items-center gap-1">
+                {isListening ? (
+                  <span className="flex items-center gap-1 text-destructive font-medium">
+                    <span className="h-1.5 w-1.5 rounded-full bg-destructive animate-ping inline-block" />
+                    सुन रहा है... बोलते रहें, फिर mic बंद करें
+                  </span>
+                ) : (
+                  <>
+                    <Mic className="h-3 w-3 text-primary" />
+                    Mic बटन दबाएं और हिंदी में बोलें — या सीधे type करें
+                  </>
+                )}
               </p>
             </div>
 
