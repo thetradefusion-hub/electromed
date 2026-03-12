@@ -228,7 +228,6 @@ export default function Consultation() {
         durationUnit: 'weeks',
       },
     ]);
-    setSymptomSearch('');
   };
 
   const removeSymptom = (symptomId: string) => {
