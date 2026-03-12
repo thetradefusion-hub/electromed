@@ -144,7 +144,6 @@ export default function Consultation() {
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
-  const [symptomSearch, setSymptomSearch] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState<SelectedSymptom[]>([]);
   const [suggestedMedicines, setSuggestedMedicines] = useState<SuggestedMedicine[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
