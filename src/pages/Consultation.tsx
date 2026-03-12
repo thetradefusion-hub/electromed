@@ -306,12 +306,18 @@ export default function Consultation() {
       durationUnit: ss.durationUnit,
     }));
 
-      // Start both AI calls in parallel
-      const explanationsPromise = explainMedicines(medicineInputs, symptomInputs);
-      
-      // Treatment summary call
+    // Generate treatment summary
+    if (suggestedList.length > 0) {
+      const medicineInputs = suggestedList.map(sm => ({
+        name: sm.medicine.name,
+        category: sm.medicine.category,
+        indications: sm.medicine.indications || null,
+        dosage: sm.dosage,
+        duration: sm.duration,
+      }));
+
       setSummaryLoading(true);
-      const summaryPromise = supabase.functions.invoke('generate-treatment-summary', {
+      const summaryResult = await supabase.functions.invoke('generate-treatment-summary', {
         body: {
           symptoms: symptomInputs,
           medicines: medicineInputs,
@@ -319,17 +325,6 @@ export default function Consultation() {
           doctorNotes: doctorNotes || null,
         }
       });
-
-      const [explanations, summaryResult] = await Promise.all([explanationsPromise, summaryPromise]);
-      
-      if (explanations.length > 0) {
-        setSuggestedMedicines(prev => prev.map(sm => {
-          const explanation = explanations.find(
-            e => e.medicineName.toLowerCase() === sm.medicine.name.toLowerCase()
-          );
-          return explanation ? { ...sm, aiExplanation: explanation } : sm;
-        }));
-      }
 
       if (summaryResult.data?.summary) {
         setTreatmentSummary(summaryResult.data.summary);
