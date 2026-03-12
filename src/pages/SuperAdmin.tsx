@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Activity, Pill, Stethoscope, BookOpen, TrendingUp, Clock, Shield } from 'lucide-react';
+import { Users, Activity, Pill, Stethoscope, BookOpen, TrendingUp, Clock, Shield, Library } from 'lucide-react';
 import DoctorsManagement from '@/components/superadmin/DoctorsManagement';
 import ClinicAnalytics from '@/components/superadmin/ClinicAnalytics';
 import SymptomsManagement from '@/components/superadmin/SymptomsManagement';
@@ -10,6 +10,7 @@ import RulesManagement from '@/components/superadmin/RulesManagement';
 import ActivityFeed from '@/components/superadmin/ActivityFeed';
 import DoctorPerformance from '@/components/superadmin/DoctorPerformance';
 import UserRolesManagement from '@/components/superadmin/UserRolesManagement';
+import BookKnowledgeImport from '@/components/superadmin/BookKnowledgeImport';
 
 const SuperAdmin = () => {
   const [activeTab, setActiveTab] = useState('analytics');
