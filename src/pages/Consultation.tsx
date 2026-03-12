@@ -205,52 +205,17 @@ export default function Consultation() {
       p.patient_id.toLowerCase().includes(patientSearch.toLowerCase())
   );
 
-  const filteredSymptoms = symptoms.filter(
-    (s) =>
-      s.name.toLowerCase().includes(symptomSearch.toLowerCase()) &&
-      !selectedSymptoms.find((ss) => ss.symptomId === s.id)
-  );
-
-  // Extract symptoms from doctor notes text by matching against symptoms DB
-  const extractedSymptomsFromNotes = useMemo(() => {
+  // Auto-extract symptoms from doctor notes
+  const extractSymptomsFromNotes = useCallback(() => {
     if (!doctorNotes.trim() || symptoms.length === 0) return [];
     const notesLower = doctorNotes.toLowerCase();
     return symptoms.filter(s => {
       const nameLower = s.name.toLowerCase();
-      // Match if symptom name (or its words) appear in notes
       if (notesLower.includes(nameLower)) return true;
-      // Also check individual words of symptom name (min 4 chars to avoid false matches)
       const words = nameLower.split(' ').filter(w => w.length >= 4);
       return words.length > 0 && words.some(w => notesLower.includes(w));
-    }).filter(s => !selectedSymptoms.find(ss => ss.symptomId === s.id));
-  }, [doctorNotes, symptoms, selectedSymptoms]);
-
-  // Get quick symptom chips that match common symptoms
-  const quickSymptomChips = useMemo(() => {
-    // If doctor has typed notes, show extracted symptoms; else show common symptoms
-    if (doctorNotes.trim() && extractedSymptomsFromNotes.length > 0) {
-      return extractedSymptomsFromNotes;
-    }
-    return COMMON_SYMPTOMS.map(name => {
-      const symptom = symptoms.find(s => 
-        s.name.toLowerCase().includes(name.toLowerCase())
-      );
-      return symptom;
-    }).filter((s): s is Symptom => 
-      s !== undefined && !selectedSymptoms.find(ss => ss.symptomId === s.id)
-    );
-  }, [symptoms, selectedSymptoms, doctorNotes, extractedSymptomsFromNotes]);
-
-  const groupedSymptoms = useMemo(() => {
-    const groups: Record<string, Symptom[]> = {};
-    filteredSymptoms.forEach((symptom) => {
-      if (!groups[symptom.category]) {
-        groups[symptom.category] = [];
-      }
-      groups[symptom.category].push(symptom);
     });
-    return groups;
-  }, [filteredSymptoms]);
+  }, [doctorNotes, symptoms]);
 
   const addSymptom = (symptom: Symptom) => {
     setSelectedSymptoms((prev) => [
