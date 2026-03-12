@@ -87,7 +87,6 @@ export default function Consultation() {
   const { symptoms, loading: symptomsLoading } = useSymptoms();
   const { medicines } = useMedicines();
   const { createPrescription, doctorInfo } = usePrescriptions();
-  const { explainMedicines, isLoading: aiLoading } = useAIMedicineExplainer();
   const { explainSymptoms, getExplanation, isLoading: symptomAiLoading } = useAISymptomExplainer();
   const [expandedSymptomId, setExpandedSymptomId] = useState<string | null>(null);
   const [doctorNotes, setDoctorNotes] = useState('');
