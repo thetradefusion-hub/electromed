@@ -869,41 +869,6 @@ export default function Consultation() {
               </div>
             )}
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search and add more symptoms..."
-                value={symptomSearch}
-                onChange={(e) => setSymptomSearch(e.target.value)}
-                className="medical-input pl-10"
-              />
-            </div>
-
-            {symptomSearch && (
-              <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-border bg-card p-2 scrollbar-thin">
-                {Object.entries(groupedSymptoms).map(([category, categorySymptoms]) => (
-                  <div key={category} className="mb-3 last:mb-0">
-                    <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground uppercase">{category}</p>
-                    <div className="space-y-1">
-                      {categorySymptoms.map((symptom) => (
-                        <button
-                          key={symptom.id}
-                          onClick={() => addSymptom(symptom)}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
-                        >
-                          <Plus className="h-4 w-4 text-primary" />
-                          <span className="text-foreground">{symptom.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {Object.keys(groupedSymptoms).length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">No symptoms found</p>
-                )}
-              </div>
-            )}
 
             <button
               onClick={getSuggestions}
