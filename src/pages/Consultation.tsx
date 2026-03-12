@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { usePatients } from '@/hooks/usePatients';
 import { useSymptoms, Symptom } from '@/hooks/useSymptoms';
@@ -6,7 +6,6 @@ import { useMedicines, Medicine } from '@/hooks/useMedicines';
 import { usePrescriptions, PrescriptionSymptom, PrescriptionMedicine } from '@/hooks/usePrescriptions';
 import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import { useWhatsAppShare } from '@/hooks/useWhatsAppShare';
-import { useAIMedicineExplainer, MedicineExplanation } from '@/hooks/useAIMedicineExplainer';
 import { useAISymptomExplainer } from '@/hooks/useAISymptomExplainer';
 import { MedicalReportAnalyzer } from '@/components/consultation/MedicalReportAnalyzer';
 import { SymptomExplanationCard } from '@/components/consultation/SymptomExplanationCard';
@@ -14,7 +13,6 @@ import { TreatmentSummaryCard } from '@/components/consultation/TreatmentSummary
 import {
   User,
   Search,
-  Plus,
   X,
   Pill,
   Stethoscope,
@@ -37,7 +35,7 @@ import {
   MicOff,
   BookOpen,
   NotebookPen,
-  Database,
+  
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
@@ -60,7 +58,6 @@ interface SuggestedMedicine {
   dosage: string;
   duration: string;
   instructions: string;
-  aiExplanation?: MedicineExplanation;
 }
 
 interface Vitals {
@@ -78,19 +75,6 @@ interface PatientPrescription {
   medicines: { name: string }[];
 }
 
-// Common/frequently used symptoms for quick selection
-const COMMON_SYMPTOMS = [
-  'Fever',
-  'Headache', 
-  'Body Pain',
-  'Cold & Cough',
-  'Weakness',
-  'Acidity',
-  'Joint Pain',
-  'Skin Problem',
-  'Digestive Issue',
-  'Anxiety',
-];
 
 export default function Consultation() {
   const navigate = useNavigate();
@@ -102,7 +86,6 @@ export default function Consultation() {
   const { symptoms, loading: symptomsLoading } = useSymptoms();
   const { medicines } = useMedicines();
   const { createPrescription, doctorInfo } = usePrescriptions();
-  const { explainMedicines, isLoading: aiLoading } = useAIMedicineExplainer();
   const { explainSymptoms, getExplanation, isLoading: symptomAiLoading } = useAISymptomExplainer();
   const [expandedSymptomId, setExpandedSymptomId] = useState<string | null>(null);
   const [doctorNotes, setDoctorNotes] = useState('');
@@ -160,7 +143,6 @@ export default function Consultation() {
 
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(patientIdFromUrl);
   const [patientSearch, setPatientSearch] = useState('');
-  const [symptomSearch, setSymptomSearch] = useState('');
   const [selectedSymptoms, setSelectedSymptoms] = useState<SelectedSymptom[]>([]);
   const [suggestedMedicines, setSuggestedMedicines] = useState<SuggestedMedicine[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -222,52 +204,17 @@ export default function Consultation() {
       p.patient_id.toLowerCase().includes(patientSearch.toLowerCase())
   );
 
-  const filteredSymptoms = symptoms.filter(
-    (s) =>
-      s.name.toLowerCase().includes(symptomSearch.toLowerCase()) &&
-      !selectedSymptoms.find((ss) => ss.symptomId === s.id)
-  );
-
-  // Extract symptoms from doctor notes text by matching against symptoms DB
-  const extractedSymptomsFromNotes = useMemo(() => {
+  // Auto-extract symptoms from doctor notes
+  const extractSymptomsFromNotes = useCallback(() => {
     if (!doctorNotes.trim() || symptoms.length === 0) return [];
     const notesLower = doctorNotes.toLowerCase();
     return symptoms.filter(s => {
       const nameLower = s.name.toLowerCase();
-      // Match if symptom name (or its words) appear in notes
       if (notesLower.includes(nameLower)) return true;
-      // Also check individual words of symptom name (min 4 chars to avoid false matches)
       const words = nameLower.split(' ').filter(w => w.length >= 4);
       return words.length > 0 && words.some(w => notesLower.includes(w));
-    }).filter(s => !selectedSymptoms.find(ss => ss.symptomId === s.id));
-  }, [doctorNotes, symptoms, selectedSymptoms]);
-
-  // Get quick symptom chips that match common symptoms
-  const quickSymptomChips = useMemo(() => {
-    // If doctor has typed notes, show extracted symptoms; else show common symptoms
-    if (doctorNotes.trim() && extractedSymptomsFromNotes.length > 0) {
-      return extractedSymptomsFromNotes;
-    }
-    return COMMON_SYMPTOMS.map(name => {
-      const symptom = symptoms.find(s => 
-        s.name.toLowerCase().includes(name.toLowerCase())
-      );
-      return symptom;
-    }).filter((s): s is Symptom => 
-      s !== undefined && !selectedSymptoms.find(ss => ss.symptomId === s.id)
-    );
-  }, [symptoms, selectedSymptoms, doctorNotes, extractedSymptomsFromNotes]);
-
-  const groupedSymptoms = useMemo(() => {
-    const groups: Record<string, Symptom[]> = {};
-    filteredSymptoms.forEach((symptom) => {
-      if (!groups[symptom.category]) {
-        groups[symptom.category] = [];
-      }
-      groups[symptom.category].push(symptom);
     });
-    return groups;
-  }, [filteredSymptoms]);
+  }, [doctorNotes, symptoms]);
 
   const addSymptom = (symptom: Symptom) => {
     setSelectedSymptoms((prev) => [
@@ -280,7 +227,6 @@ export default function Consultation() {
         durationUnit: 'weeks',
       },
     ]);
-    setSymptomSearch('');
   };
 
   const removeSymptom = (symptomId: string) => {
@@ -298,12 +244,23 @@ export default function Consultation() {
   };
 
   const getSuggestions = async () => {
-    if (selectedSymptoms.length === 0) {
-      toast.error('Please select at least one symptom');
+    if (!doctorNotes.trim()) {
+      toast.error('कृपया रोगी की समस्या लिखें');
       return;
     }
 
-    const symptomIds = selectedSymptoms.map((s) => s.symptomId);
+    // Auto-extract symptoms from notes
+    const extracted = extractSymptomsFromNotes();
+    const autoSymptoms: SelectedSymptom[] = extracted.map(s => ({
+      symptomId: s.id,
+      symptom: s,
+      severity: 'medium' as const,
+      duration: 1,
+      durationUnit: 'weeks' as const,
+    }));
+    setSelectedSymptoms(autoSymptoms);
+
+    const symptomIds = autoSymptoms.map((s) => s.symptomId);
 
     const { data: rules, error } = await supabase
       .from('medicine_rules')
@@ -341,14 +298,14 @@ export default function Consultation() {
     setShowSuggestions(true);
     toast.success(`${suggestedList.length} दवाएं मिलीं, Rule Engine से विश्लेषण हो रहा है...`);
 
-    const symptomInputs = selectedSymptoms.map(ss => ({
+    const symptomInputs = autoSymptoms.map(ss => ({
       name: ss.symptom.name,
       severity: ss.severity,
       duration: ss.duration,
       durationUnit: ss.durationUnit,
     }));
 
-    // Get AI explanations and treatment summary in parallel
+    // Generate treatment summary
     if (suggestedList.length > 0) {
       const medicineInputs = suggestedList.map(sm => ({
         name: sm.medicine.name,
@@ -358,12 +315,8 @@ export default function Consultation() {
         duration: sm.duration,
       }));
 
-      // Start both AI calls in parallel
-      const explanationsPromise = explainMedicines(medicineInputs, symptomInputs);
-      
-      // Treatment summary call
       setSummaryLoading(true);
-      const summaryPromise = supabase.functions.invoke('generate-treatment-summary', {
+      const summaryResult = await supabase.functions.invoke('generate-treatment-summary', {
         body: {
           symptoms: symptomInputs,
           medicines: medicineInputs,
@@ -371,17 +324,6 @@ export default function Consultation() {
           doctorNotes: doctorNotes || null,
         }
       });
-
-      const [explanations, summaryResult] = await Promise.all([explanationsPromise, summaryPromise]);
-      
-      if (explanations.length > 0) {
-        setSuggestedMedicines(prev => prev.map(sm => {
-          const explanation = explanations.find(
-            e => e.medicineName.toLowerCase() === sm.medicine.name.toLowerCase()
-          );
-          return explanation ? { ...sm, aiExplanation: explanation } : sm;
-        }));
-      }
 
       if (summaryResult.data?.summary) {
         setTreatmentSummary(summaryResult.data.summary);
@@ -449,7 +391,6 @@ export default function Consultation() {
       indications: sm.medicine.indications || undefined,
       contraIndications: sm.medicine.contra_indications || undefined,
       notes: sm.medicine.notes || undefined,
-      aiExplanation: sm.aiExplanation,
     }));
 
     const followUpDate = addDays(new Date(), followUpDays).toISOString();
@@ -828,38 +769,6 @@ export default function Consultation() {
               </p>
             </div>
 
-            {/* Quick Symptom Chips */}
-            {quickSymptomChips.length > 0 && (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
-                  {doctorNotes.trim() && extractedSymptomsFromNotes.length > 0 ? (
-                    <>
-                      <Sparkles className="h-3 w-3 text-primary" />
-                      Notes से मिले Symptoms — Quick Add करें
-                    </>
-                  ) : (
-                    'Quick Add'
-                  )}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {quickSymptomChips.slice(0, 10).map((symptom) => (
-                    <button
-                      key={symptom.id}
-                      onClick={() => addSymptom(symptom)}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all",
-                        doctorNotes.trim() && extractedSymptomsFromNotes.find(s => s.id === symptom.id)
-                          ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-                          : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/5"
-                      )}
-                    >
-                      <Plus className="h-3 w-3 text-primary" />
-                      {symptom.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {selectedSymptoms.length > 0 && (
               <div className="mb-4 space-y-3">
@@ -959,45 +868,10 @@ export default function Consultation() {
               </div>
             )}
 
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search and add more symptoms..."
-                value={symptomSearch}
-                onChange={(e) => setSymptomSearch(e.target.value)}
-                className="medical-input pl-10"
-              />
-            </div>
-
-            {symptomSearch && (
-              <div className="mt-3 max-h-64 overflow-y-auto rounded-lg border border-border bg-card p-2 scrollbar-thin">
-                {Object.entries(groupedSymptoms).map(([category, categorySymptoms]) => (
-                  <div key={category} className="mb-3 last:mb-0">
-                    <p className="mb-1.5 px-2 text-xs font-medium text-muted-foreground uppercase">{category}</p>
-                    <div className="space-y-1">
-                      {categorySymptoms.map((symptom) => (
-                        <button
-                          key={symptom.id}
-                          onClick={() => addSymptom(symptom)}
-                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-secondary"
-                        >
-                          <Plus className="h-4 w-4 text-primary" />
-                          <span className="text-foreground">{symptom.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-                {Object.keys(groupedSymptoms).length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">No symptoms found</p>
-                )}
-              </div>
-            )}
 
             <button
               onClick={getSuggestions}
-              disabled={selectedSymptoms.length === 0}
+              disabled={!doctorNotes.trim() || summaryLoading}
               className="mt-4 w-full medical-btn-accent disabled:opacity-50"
             >
               <Sparkles className="h-4 w-4" />
@@ -1087,12 +961,6 @@ export default function Consultation() {
               </div>
             ) : (
               <div className="space-y-4">
-                {aiLoading && (
-                  <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-primary">Rule Engine से विश्लेषण हो रहा है...</span>
-                  </div>
-                )}
                 {suggestedMedicines.map((pm) => (
                   <div
                     key={pm.medicineId}
@@ -1111,46 +979,8 @@ export default function Consultation() {
                       </button>
                     </div>
                     
-                    {/* AI Hindi Explanation Section */}
-                    {pm.aiExplanation && (
-                      <div className="mb-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-3 space-y-2 border border-primary/20">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                          <Database className="h-3.5 w-3.5" />
-                          विशेषज्ञ विश्लेषण
-                        </div>
-                        <div className="space-y-1.5">
-                          <div>
-                            <span className="text-xs font-medium text-green-600">क्यों:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.why}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-blue-600">कैसे लें:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.howToUse}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-purple-600">मात्रा/पोटेंसी:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.potency}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-orange-600">सावधानी:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.precautions}</p>
-                          </div>
-                          {pm.aiExplanation.benefits.length > 0 && (
-                            <div>
-                              <span className="text-xs font-medium text-teal-600">फायदे:</span>
-                              <ul className="text-xs text-foreground/80 mt-0.5 list-disc list-inside">
-                                {pm.aiExplanation.benefits.map((b, i) => (
-                                  <li key={i}>{b}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Original Medicine Details Section */}
-                    {!pm.aiExplanation && (pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
+                    {/* Medicine Details */}
+                    {(pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
                       <div className="mb-3 rounded-md bg-secondary/50 p-2 space-y-1.5">
                         {pm.medicine.indications && (
                           <div className="flex gap-2">
