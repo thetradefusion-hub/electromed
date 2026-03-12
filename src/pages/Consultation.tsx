@@ -35,7 +35,7 @@ import {
   MicOff,
   BookOpen,
   NotebookPen,
-  Database,
+  
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
