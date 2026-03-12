@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { usePatients } from '@/hooks/usePatients';
 import { useSymptoms, Symptom } from '@/hooks/useSymptoms';
