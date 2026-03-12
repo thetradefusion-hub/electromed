@@ -76,19 +76,6 @@ interface PatientPrescription {
   medicines: { name: string }[];
 }
 
-// Common/frequently used symptoms for quick selection
-const COMMON_SYMPTOMS = [
-  'Fever',
-  'Headache', 
-  'Body Pain',
-  'Cold & Cough',
-  'Weakness',
-  'Acidity',
-  'Joint Pain',
-  'Skin Problem',
-  'Digestive Issue',
-  'Anxiety',
-];
 
 export default function Consultation() {
   const navigate = useNavigate();
