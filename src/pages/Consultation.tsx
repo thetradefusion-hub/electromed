@@ -59,7 +59,6 @@ interface SuggestedMedicine {
   dosage: string;
   duration: string;
   instructions: string;
-  aiExplanation?: MedicineExplanation;
 }
 
 interface Vitals {
