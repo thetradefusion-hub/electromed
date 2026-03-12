@@ -57,6 +57,10 @@ const SuperAdmin = () => {
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">User Roles</span>
             </TabsTrigger>
+            <TabsTrigger value="knowledge" className="gap-2">
+              <Library className="h-4 w-4" />
+              <span className="hidden sm:inline">Knowledge Import</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="analytics">
