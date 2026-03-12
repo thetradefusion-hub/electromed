@@ -980,46 +980,8 @@ export default function Consultation() {
                       </button>
                     </div>
                     
-                    {/* AI Hindi Explanation Section */}
-                    {pm.aiExplanation && (
-                      <div className="mb-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 p-3 space-y-2 border border-primary/20">
-                        <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                          <Database className="h-3.5 w-3.5" />
-                          विशेषज्ञ विश्लेषण
-                        </div>
-                        <div className="space-y-1.5">
-                          <div>
-                            <span className="text-xs font-medium text-green-600">क्यों:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.why}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-blue-600">कैसे लें:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.howToUse}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-purple-600">मात्रा/पोटेंसी:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.potency}</p>
-                          </div>
-                          <div>
-                            <span className="text-xs font-medium text-orange-600">सावधानी:</span>
-                            <p className="text-xs text-foreground/80 mt-0.5">{pm.aiExplanation.precautions}</p>
-                          </div>
-                          {pm.aiExplanation.benefits.length > 0 && (
-                            <div>
-                              <span className="text-xs font-medium text-teal-600">फायदे:</span>
-                              <ul className="text-xs text-foreground/80 mt-0.5 list-disc list-inside">
-                                {pm.aiExplanation.benefits.map((b, i) => (
-                                  <li key={i}>{b}</li>
-                                ))}
-                              </ul>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Original Medicine Details Section */}
-                    {!pm.aiExplanation && (pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
+                    {/* Medicine Details */}
+                    {(pm.medicine.indications || pm.medicine.contra_indications || pm.medicine.notes) && (
                       <div className="mb-3 rounded-md bg-secondary/50 p-2 space-y-1.5">
                         {pm.medicine.indications && (
                           <div className="flex gap-2">
