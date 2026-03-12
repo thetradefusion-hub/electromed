@@ -99,6 +99,10 @@ const SuperAdmin = () => {
           <TabsContent value="roles">
             <UserRolesManagement />
           </TabsContent>
+
+          <TabsContent value="knowledge">
+            <BookKnowledgeImport />
+          </TabsContent>
         </Tabs>
       </div>
     </MainLayout>
