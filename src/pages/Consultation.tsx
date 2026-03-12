@@ -872,7 +872,7 @@ export default function Consultation() {
 
             <button
               onClick={getSuggestions}
-              disabled={selectedSymptoms.length === 0}
+              disabled={!doctorNotes.trim() || summaryLoading}
               className="mt-4 w-full medical-btn-accent disabled:opacity-50"
             >
               <Sparkles className="h-4 w-4" />
