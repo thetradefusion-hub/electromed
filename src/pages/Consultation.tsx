@@ -770,38 +770,6 @@ export default function Consultation() {
               </p>
             </div>
 
-            {/* Quick Symptom Chips */}
-            {quickSymptomChips.length > 0 && (
-              <div className="mb-4">
-                <p className="mb-2 text-xs font-medium text-muted-foreground uppercase flex items-center gap-1.5">
-                  {doctorNotes.trim() && extractedSymptomsFromNotes.length > 0 ? (
-                    <>
-                      <Sparkles className="h-3 w-3 text-primary" />
-                      Notes से मिले Symptoms — Quick Add करें
-                    </>
-                  ) : (
-                    'Quick Add'
-                  )}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {quickSymptomChips.slice(0, 10).map((symptom) => (
-                    <button
-                      key={symptom.id}
-                      onClick={() => addSymptom(symptom)}
-                      className={cn(
-                        "flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all",
-                        doctorNotes.trim() && extractedSymptomsFromNotes.find(s => s.id === symptom.id)
-                          ? "border-primary/40 bg-primary/10 text-primary hover:bg-primary/20"
-                          : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/5"
-                      )}
-                    >
-                      <Plus className="h-3 w-3 text-primary" />
-                      {symptom.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {selectedSymptoms.length > 0 && (
               <div className="mb-4 space-y-3">
