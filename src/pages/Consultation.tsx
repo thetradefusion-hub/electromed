@@ -299,22 +299,12 @@ export default function Consultation() {
     setShowSuggestions(true);
     toast.success(`${suggestedList.length} दवाएं मिलीं, Rule Engine से विश्लेषण हो रहा है...`);
 
-    const symptomInputs = selectedSymptoms.map(ss => ({
+    const symptomInputs = autoSymptoms.map(ss => ({
       name: ss.symptom.name,
       severity: ss.severity,
       duration: ss.duration,
       durationUnit: ss.durationUnit,
     }));
-
-    // Get AI explanations and treatment summary in parallel
-    if (suggestedList.length > 0) {
-      const medicineInputs = suggestedList.map(sm => ({
-        name: sm.medicine.name,
-        category: sm.medicine.category,
-        indications: sm.medicine.indications || null,
-        dosage: sm.dosage,
-        duration: sm.duration,
-      }));
 
       // Start both AI calls in parallel
       const explanationsPromise = explainMedicines(medicineInputs, symptomInputs);
