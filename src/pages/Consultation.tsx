@@ -962,12 +962,6 @@ export default function Consultation() {
               </div>
             ) : (
               <div className="space-y-4">
-                {aiLoading && (
-                  <div className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-sm">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <span className="text-primary">Rule Engine से विश्लेषण हो रहा है...</span>
-                  </div>
-                )}
                 {suggestedMedicines.map((pm) => (
                   <div
                     key={pm.medicineId}
