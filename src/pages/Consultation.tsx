@@ -245,12 +245,23 @@ export default function Consultation() {
   };
 
   const getSuggestions = async () => {
-    if (selectedSymptoms.length === 0) {
-      toast.error('Please select at least one symptom');
+    if (!doctorNotes.trim()) {
+      toast.error('कृपया रोगी की समस्या लिखें');
       return;
     }
 
-    const symptomIds = selectedSymptoms.map((s) => s.symptomId);
+    // Auto-extract symptoms from notes
+    const extracted = extractSymptomsFromNotes();
+    const autoSymptoms: SelectedSymptom[] = extracted.map(s => ({
+      symptomId: s.id,
+      symptom: s,
+      severity: 'medium' as const,
+      duration: 1,
+      durationUnit: 'weeks' as const,
+    }));
+    setSelectedSymptoms(autoSymptoms);
+
+    const symptomIds = autoSymptoms.map((s) => s.symptomId);
 
     const { data: rules, error } = await supabase
       .from('medicine_rules')
