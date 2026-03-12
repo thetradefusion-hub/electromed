@@ -12,7 +12,7 @@ import { SymptomExplanationCard } from '@/components/consultation/SymptomExplana
 import { TreatmentSummaryCard } from '@/components/consultation/TreatmentSummaryCard';
 import {
   User,
-  Plus,
+  
   X,
   Pill,
   Stethoscope,
