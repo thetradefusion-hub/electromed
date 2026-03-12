@@ -6,7 +6,6 @@ import { useMedicines, Medicine } from '@/hooks/useMedicines';
 import { usePrescriptions, PrescriptionSymptom, PrescriptionMedicine } from '@/hooks/usePrescriptions';
 import { generatePrescriptionPDF } from '@/utils/generatePrescriptionPDF';
 import { useWhatsAppShare } from '@/hooks/useWhatsAppShare';
-import { useAIMedicineExplainer, MedicineExplanation } from '@/hooks/useAIMedicineExplainer';
 import { useAISymptomExplainer } from '@/hooks/useAISymptomExplainer';
 import { MedicalReportAnalyzer } from '@/components/consultation/MedicalReportAnalyzer';
 import { SymptomExplanationCard } from '@/components/consultation/SymptomExplanationCard';
