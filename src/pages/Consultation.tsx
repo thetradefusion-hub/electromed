@@ -392,7 +392,6 @@ export default function Consultation() {
       indications: sm.medicine.indications || undefined,
       contraIndications: sm.medicine.contra_indications || undefined,
       notes: sm.medicine.notes || undefined,
-      aiExplanation: sm.aiExplanation,
     }));
 
     const followUpDate = addDays(new Date(), followUpDays).toISOString();
