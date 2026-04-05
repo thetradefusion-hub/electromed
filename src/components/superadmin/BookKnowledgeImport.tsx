@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Upload, FileText, Image, Loader2, BookOpen, Check, ArrowRight, Pill, Stethoscope, Save, Trash2 } from 'lucide-react';
 
@@ -36,6 +37,7 @@ interface ExtractedMedicine {
 }
 
 export default function BookKnowledgeImport() {
+  const queryClient = useQueryClient();
   const [uploadMode, setUploadMode] = useState<'image' | 'text'>('image');
   const [textContent, setTextContent] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
@@ -246,6 +248,10 @@ export default function BookKnowledgeImport() {
       }
 
       toast.success(`${savedCount} rules saved to knowledge base!`);
+      // Invalidate rules, symptoms, and medicines queries so other tabs show updated data
+      queryClient.invalidateQueries({ queryKey: ['admin-rules'] });
+      queryClient.invalidateQueries({ queryKey: ['all-symptoms'] });
+      queryClient.invalidateQueries({ queryKey: ['all-medicines'] });
       setExtractedRules([]);
       setExtractedSymptoms([]);
       setExtractedMedicines([]);

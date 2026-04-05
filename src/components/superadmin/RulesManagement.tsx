@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Search, Edit, Trash2, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, ArrowUpDown, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -25,6 +25,7 @@ interface MedicineRule {
   priority: number;
   is_global: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 interface Symptom {
@@ -61,7 +62,7 @@ const RulesManagement = () => {
         .from('medicine_rules')
         .select('*')
         .eq('is_global', true)
-        .order('priority', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
       return data as MedicineRule[];
@@ -436,13 +437,14 @@ const RulesManagement = () => {
                   <TableHead>Medicines</TableHead>
                   <TableHead>Dosage</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredRules?.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       No rules found. Add symptoms and medicines first, then create rules.
                     </TableCell>
                   </TableRow>
@@ -489,6 +491,12 @@ const RulesManagement = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{rule.dosage}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{rule.duration}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(rule.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>
                           <Edit className="h-4 w-4" />
