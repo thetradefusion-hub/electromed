@@ -64,12 +64,33 @@ export default function Medicines() {
 
   const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...categories])].sort();
 
-  const filteredMedicines = medicines.filter((medicine) => {
+  // Only show the 38 main medicines (match by short name at start of medicine name)
+  const isMainMedicine = (name: string) => {
+    const upperName = name.trim().toUpperCase();
+    // Exact match or match like "S1 (Scrofoloso-1)" → extract prefix before space/bracket/dash
+    const shortName = upperName.split(/[\s(\-]/)[0];
+    return MAIN_MEDICINE_NAMES.has(shortName);
+  };
+
+  const mainMedicines = medicines.filter(m => isMainMedicine(m.name));
+
+  // Deduplicate by short name — keep first occurrence
+  const deduped = (() => {
+    const seen = new Set<string>();
+    return mainMedicines.filter(m => {
+      const key = m.name.trim().toUpperCase().split(/[\s(\-]/)[0];
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
+
+  const filteredMedicines = deduped.filter((medicine) => {
     const matchesSearch =
       medicine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (medicine.indications?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchesCategory =
-      selectedCategory === 'all' || medicine.category === selectedCategory;
+      selectedCategory === 'all' || medicine.category.toLowerCase().includes(selectedCategory.toLowerCase());
     return matchesSearch && matchesCategory;
   });
 
