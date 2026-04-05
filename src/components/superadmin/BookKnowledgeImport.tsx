@@ -69,9 +69,12 @@ export default function BookKnowledgeImport() {
 
       if (file.type.startsWith('image/')) {
         // Convert image to base64 data URL
-        const buffer = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-        content = `data:${file.type};base64,${base64}`;
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        content = base64;
         contentType = 'image';
       } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
         content = await file.text();
