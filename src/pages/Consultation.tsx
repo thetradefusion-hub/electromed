@@ -289,12 +289,7 @@ export default function Consultation() {
     setShowSuggestions(true);
     toast.success('Rule Engine से विश्लेषण हो रहा है...');
 
-    const symptomInputs = autoSymptoms.map(ss => ({
-      name: ss.symptom.name,
-      severity: ss.severity,
-      duration: ss.duration,
-      durationUnit: ss.durationUnit,
-    }));
+    const symptomInputs: { name: string; severity: string; duration: number; durationUnit: string }[] = [];
 
     const medicineInputs = ruleBasedList.map(sm => ({
       name: sm.medicine.name,
