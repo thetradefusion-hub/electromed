@@ -192,18 +192,14 @@ export default function Medicines() {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="medical-card p-4 text-center">
-          <p className="text-2xl font-bold text-primary">{medicines.length}</p>
-          <p className="text-sm text-muted-foreground">Total Medicines</p>
+          <p className="text-2xl font-bold text-primary">{deduped.length}</p>
+          <p className="text-sm text-muted-foreground">Main Medicines</p>
         </div>
         <div className="medical-card p-4 text-center">
-          <p className="text-2xl font-bold text-accent">{medicines.filter(m => m.is_global).length}</p>
-          <p className="text-sm text-muted-foreground">Global</p>
-        </div>
-        <div className="medical-card p-4 text-center">
-          <p className="text-2xl font-bold text-warning">{medicines.filter(m => !m.is_global).length}</p>
-          <p className="text-sm text-muted-foreground">Custom</p>
+          <p className="text-2xl font-bold text-accent">{filteredMedicines.length}</p>
+          <p className="text-sm text-muted-foreground">Showing</p>
         </div>
         <div className="medical-card p-4 text-center">
           <p className="text-2xl font-bold text-foreground">{allCategories.length}</p>
