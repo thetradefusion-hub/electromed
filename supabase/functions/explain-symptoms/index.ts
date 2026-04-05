@@ -29,9 +29,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     const symptomsList = (symptoms as SymptomInfo[])
@@ -57,16 +57,16 @@ ${symptomsList}
 
 Return a JSON object where keys are symptom names and values are the medical descriptions (~100 words each).`;
 
-    console.log('Calling Lovable AI for symptom explanations...');
+    console.log('Calling OpenAI for symptom explanations...');
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
@@ -96,13 +96,11 @@ Return a JSON object where keys are symptom names and values are the medical des
                         clinicalSignificance: { type: "string", description: "When this symptom indicates serious concern" },
                         differentialConsiderations: { type: "string", description: "What the symptom may indicate" }
                       },
-                      required: ["symptomName", "medicalDefinition", "pathophysiology", "associatedConditions", "clinicalSignificance", "differentialConsiderations"],
-                      additionalProperties: false
+                      required: ["symptomName", "medicalDefinition", "pathophysiology", "associatedConditions", "clinicalSignificance", "differentialConsiderations"]
                     }
                   }
                 },
-                required: ["explanations"],
-                additionalProperties: false
+                required: ["explanations"]
               }
             }
           }
@@ -113,7 +111,7 @@ Return a JSON object where keys are symptom names and values are the medical des
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenAI API error:", response.status, errorText);
       
       if (response.status === 429) {
         return new Response(
@@ -122,11 +120,11 @@ Return a JSON object where keys are symptom names and values are the medical des
         );
       }
       
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error(`OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('AI response received:', JSON.stringify(data).substring(0, 500));
+    console.log('OpenAI response received:', JSON.stringify(data).substring(0, 500));
 
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "explain_symptoms") {

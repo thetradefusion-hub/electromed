@@ -20,9 +20,9 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured");
     }
 
     const systemPrompt = `You are an expert in Electro Homoeopathy medicine. You extract structured medical knowledge from books, notes, and reference materials.
@@ -74,7 +74,6 @@ IMPORTANT GUIDELINES:
       { role: "system", content: systemPrompt },
     ];
 
-    // Handle different content types
     if (contentType === "image") {
       messages.push({
         role: "user",
@@ -82,7 +81,7 @@ IMPORTANT GUIDELINES:
           { type: "text", text: `Extract all symptom-to-medicine rules from this medical book page/image. File: ${fileName}` },
           {
             type: "image_url",
-            image_url: { url: content }, // base64 data URL
+            image_url: { url: content },
           },
         ],
       });
@@ -93,14 +92,14 @@ IMPORTANT GUIDELINES:
       });
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "gpt-4o",
         messages,
         response_format: { type: "json_object" },
       }),
@@ -114,7 +113,7 @@ IMPORTANT GUIDELINES:
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("OpenAI API error:", response.status, errorText);
       throw new Error("Failed to extract knowledge");
     }
 
