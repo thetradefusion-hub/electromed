@@ -249,18 +249,10 @@ export default function Consultation() {
       return;
     }
 
-    // Auto-extract symptoms from notes
-    const extracted = extractSymptomsFromNotes();
-    const autoSymptoms: SelectedSymptom[] = extracted.map(s => ({
-      symptomId: s.id,
-      symptom: s,
-      severity: 'medium' as const,
-      duration: 1,
-      durationUnit: 'weeks' as const,
-    }));
-    setSelectedSymptoms(autoSymptoms);
+    // Clear any previous symptoms - no longer showing them
+    setSelectedSymptoms([]);
 
-    const symptomIds = autoSymptoms.map((s) => s.symptomId);
+    const symptomIds: string[] = [];
 
     // Fetch rules for initial context
     const { data: rules, error } = await supabase
