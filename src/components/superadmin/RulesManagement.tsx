@@ -491,6 +491,12 @@ const RulesManagement = () => {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{rule.dosage}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{rule.duration}</TableCell>
+                      <TableCell className="text-muted-foreground text-xs whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {new Date(rule.updated_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEdit(rule)}>
                           <Edit className="h-4 w-4" />
