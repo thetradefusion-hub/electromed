@@ -437,6 +437,7 @@ const RulesManagement = () => {
                   <TableHead>Medicines</TableHead>
                   <TableHead>Dosage</TableHead>
                   <TableHead>Duration</TableHead>
+                  <TableHead>Updated</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
