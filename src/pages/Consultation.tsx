@@ -333,6 +333,11 @@ export default function Consultation() {
     if (summaryResult.data?.summary) {
       setTreatmentSummary(summaryResult.data.summary);
 
+      // Auto-fill diagnosis from AI response
+      if (summaryResult.data.diagnosis) {
+        setDiagnosis(summaryResult.data.diagnosis);
+      }
+
       // Populate Suggested Medicines from AI-recommended medicines
       const recommended = summaryResult.data.recommendedMedicines as { name: string; dosage: string; duration: string }[] | undefined;
       if (recommended && recommended.length > 0) {
