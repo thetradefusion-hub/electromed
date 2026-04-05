@@ -21,17 +21,28 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const DEFAULT_CATEGORIES = [
-  'Temperament',
-  'Blood Purifier',
-  'Lymphatic',
-  'Digestive',
-  'Respiratory',
-  'Nervous',
-  'Urinary',
-  'Reproductive',
-  'Skin',
-  'General Tonic',
+  'Scrofoloso',
+  'Canceroso',
+  'Febrifugo',
+  'Angiotico',
+  'Linfatico',
+  'Pettorale',
+  'Vermifugo',
+  'Electricities',
 ];
+
+// 38 main Electro Homoeopathy medicines (short canonical names)
+const MAIN_MEDICINE_NAMES = new Set([
+  'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10',
+  'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10',
+  'C11', 'C12', 'C13', 'C14', 'C15', 'C16', 'C17',
+  'F1', 'F2', 'F3',
+  'L1', 'L2',
+  'P1', 'P2', 'P3',
+  'A1', 'A2', 'A3',
+  'VEN1', 'VEN2', 'VEN3', 'VEN4', 'VEN5',
+  'GE', 'RE', 'WE', 'BE', 'YE',
+]);
 
 export default function Medicines() {
   const { medicines, loading, categories, createMedicine, updateMedicine, deleteMedicine, doctorId } = useMedicines();
