@@ -11,11 +11,11 @@ serve(async (req) => {
   }
 
   try {
-    const { symptoms, medicines, patientInfo, doctorNotes } = await req.json();
+    const { symptoms, medicines, patientInfo, doctorNotes, allMedicines } = await req.json();
 
-    if (!symptoms || symptoms.length === 0 || !medicines || medicines.length === 0) {
+    if (!doctorNotes || !doctorNotes.trim()) {
       return new Response(
-        JSON.stringify({ error: 'Symptoms and medicines are required' }),
+        JSON.stringify({ error: 'Doctor notes are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -25,13 +25,18 @@ serve(async (req) => {
       throw new Error("OPENAI_API_KEY is not configured");
     }
 
-    const symptomsList = symptoms
-      .map((s: any, i: number) => `${i + 1}. ${s.name} (Severity: ${s.severity}, Duration: ${s.duration} ${s.durationUnit})`)
-      .join('\n');
+    const symptomsList = symptoms && symptoms.length > 0
+      ? symptoms.map((s: any, i: number) => `${i + 1}. ${s.name} (Severity: ${s.severity}, Duration: ${s.duration} ${s.durationUnit})`).join('\n')
+      : 'डॉक्टर के नोट्स से लक्षण निकालें';
 
-    const medicinesList = medicines
-      .map((m: any, i: number) => `${i + 1}. ${m.name} (${m.category}) - Dosage: ${m.dosage}, Duration: ${m.duration}`)
-      .join('\n');
+    const medicinesList = medicines && medicines.length > 0
+      ? medicines.map((m: any, i: number) => `${i + 1}. ${m.name} (${m.category}) - Dosage: ${m.dosage}, Duration: ${m.duration}`).join('\n')
+      : 'उपलब्ध दवाओं में से सही दवाएं चुनें';
+
+    // Build available medicines context
+    const availableMedicinesText = allMedicines && allMedicines.length > 0
+      ? allMedicines.map((m: any) => `${m.name} (${m.category})`).join(', ')
+      : '';
 
     const patientContext = patientInfo
       ? `रोगी: ${patientInfo.name}, उम्र: ${patientInfo.age} वर्ष, लिंग: ${patientInfo.gender}`
@@ -45,8 +50,15 @@ serve(async (req) => {
 
 भाषा के बारे में: सारा जवाब सरल, बोलचाल की हिंदी में दें — जैसे एक अनुभवी डॉक्टर दूसरे डॉक्टर को बताता है। कठिन संस्कृत शब्दों से बचें। जैसे "समझना आवश्यक है" की जगह "समझना जरूरी है", "औषधियाँ" की जगह "दवाएं", "जमाव" की जगह "जमना" आदि।
 
-EXACTLY नीचे दिया गया format follow करें। हर section का heading बिल्कुल वैसा ही रखें:
+${availableMedicinesText ? `उपलब्ध दवाएं (सिर्फ इनमें से ही दवाएं suggest करें): ${availableMedicinesText}` : ''}
 
+आपको दो चीजें return करनी हैं:
+1. एक विस्तृत उपचार सारांश (SUMMARY section)
+2. दवाओं की सूची जो आपने suggest की हैं (MEDICINES section)
+
+EXACTLY नीचे दिया गया format follow करें:
+
+===SUMMARY_START===
 INTRO_SECTION:
 इलेक्ट्रो-होम्योपैथी में किसी भी बीमारी का इलाज शुरू करने से पहले यह जानना जरूरी है कि वह Positive (धनात्मक) है या Negative (ऋणात्मक)।
 
@@ -89,23 +101,34 @@ Potency: [D6/D10/D30]
 
 **रोगी के लिए जरूरी बातें**:
 [बहुत आसान भाषा में — जैसे आप मरीज को खुद समझा रहे हों। खाने-पीने की सलाह, क्या करें, क्या न करें।]
+===SUMMARY_END===
+
+===MEDICINES_START===
+[हर दवा एक line में, format: MEDICINE_NAME|DOSAGE|DURATION]
+जैसे:
+S1|10 drops twice daily|15 days
+S6|10 drops twice daily|15 days
+C5|10 drops twice daily|15 days
+===MEDICINES_END===
 
 जरूरी नियम:
 1. हर section को ---SECTION_BREAK--- से अलग करें
 2. INTRO_SECTION: से शुरू करें
 3. Section headings बिल्कुल ऊपर दिए format में रखें
 4. पूरा जवाब सरल बोलचाल की हिंदी में — संस्कृत/साहित्यिक हिंदी नहीं
-5. डॉक्टर के नोट्स को ध्यान में रखकर सारांश बनाएं`;
+5. डॉक्टर के नोट्स को ध्यान में रखकर सारांश बनाएं
+6. MEDICINES section में सिर्फ उपलब्ध दवाओं में से ही दवाएं लिखें
+7. ===SUMMARY_START=== और ===SUMMARY_END=== markers जरूर लगाएं
+8. ===MEDICINES_START=== और ===MEDICINES_END=== markers जरूर लगाएं`;
 
     const userPrompt = `${patientContext}${doctorNotesContext}
 
 रोगी के लक्षण:
 ${symptomsList}
 
-सुझाई गई दवाएं:
-${medicinesList}
+${medicines && medicines.length > 0 ? `पहले से match हुई दवाएं (Rule Engine से):\n${medicinesList}` : 'कोई rule match नहीं हुआ, डॉक्टर के नोट्स के आधार पर दवाएं suggest करें।'}
 
-कृपया इलेक्ट्रो-होम्योपैथी के सिद्धांतों के अनुसार विस्तृत उपचार सारांश तैयार करें (500-800 शब्द)।`;
+कृपया इलेक्ट्रो-होम्योपैथी के सिद्धांतों के अनुसार विस्तृत उपचार सारांश तैयार करें (500-800 शब्द) और दवाओं की सूची अलग से दें।`;
 
     console.log('Calling OpenAI for treatment summary...');
 
@@ -145,16 +168,40 @@ ${medicinesList}
     }
 
     const data = await response.json();
-    const summary = data.choices?.[0]?.message?.content;
+    const fullResponse = data.choices?.[0]?.message?.content;
 
-    if (!summary) {
-      throw new Error("No summary generated");
+    if (!fullResponse) {
+      throw new Error("No response generated");
     }
 
-    console.log('Treatment summary generated, length:', summary.length);
+    console.log('Treatment summary generated, length:', fullResponse.length);
+
+    // Parse summary
+    let summary = fullResponse;
+    const summaryMatch = fullResponse.match(/===SUMMARY_START===([\s\S]*?)===SUMMARY_END===/);
+    if (summaryMatch) {
+      summary = summaryMatch[1].trim();
+    }
+
+    // Parse medicines
+    const recommendedMedicines: { name: string; dosage: string; duration: string }[] = [];
+    const medicinesMatch = fullResponse.match(/===MEDICINES_START===([\s\S]*?)===MEDICINES_END===/);
+    if (medicinesMatch) {
+      const lines = medicinesMatch[1].trim().split('\n').filter((l: string) => l.trim() && l.includes('|'));
+      for (const line of lines) {
+        const parts = line.split('|').map((p: string) => p.trim());
+        if (parts.length >= 3) {
+          recommendedMedicines.push({
+            name: parts[0],
+            dosage: parts[1],
+            duration: parts[2],
+          });
+        }
+      }
+    }
 
     return new Response(
-      JSON.stringify({ summary }),
+      JSON.stringify({ summary, recommendedMedicines }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

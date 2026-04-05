@@ -262,6 +262,7 @@ export default function Consultation() {
 
     const symptomIds = autoSymptoms.map((s) => s.symptomId);
 
+    // Fetch rules for initial context
     const { data: rules, error } = await supabase
       .from('medicine_rules')
       .select('*')
@@ -273,7 +274,6 @@ export default function Consultation() {
     }
 
     const medicineMap = new Map<string, SuggestedMedicine>();
-
     const matchingRules = rules.filter((rule) =>
       rule.symptom_ids.some((sId: string) => symptomIds.includes(sId))
     );
@@ -293,10 +293,9 @@ export default function Consultation() {
       });
     });
 
-    const suggestedList = Array.from(medicineMap.values());
-    setSuggestedMedicines(suggestedList);
+    const ruleBasedList = Array.from(medicineMap.values());
     setShowSuggestions(true);
-    toast.success(`${suggestedList.length} दवाएं मिलीं, Rule Engine से विश्लेषण हो रहा है...`);
+    toast.success('Rule Engine से विश्लेषण हो रहा है...');
 
     const symptomInputs = autoSymptoms.map(ss => ({
       name: ss.symptom.name,
@@ -305,34 +304,78 @@ export default function Consultation() {
       durationUnit: ss.durationUnit,
     }));
 
-    // Generate treatment summary
-    if (suggestedList.length > 0) {
-      const medicineInputs = suggestedList.map(sm => ({
-        name: sm.medicine.name,
-        category: sm.medicine.category,
-        indications: sm.medicine.indications || null,
-        dosage: sm.dosage,
-        duration: sm.duration,
-      }));
+    const medicineInputs = ruleBasedList.map(sm => ({
+      name: sm.medicine.name,
+      category: sm.medicine.category,
+      indications: sm.medicine.indications || null,
+      dosage: sm.dosage,
+      duration: sm.duration,
+    }));
 
-      setSummaryLoading(true);
-      const summaryResult = await supabase.functions.invoke('generate-treatment-summary', {
-        body: {
-          symptoms: symptomInputs,
-          medicines: medicineInputs,
-          patientInfo: patient ? { name: patient.name, age: patient.age, gender: patient.gender } : null,
-          doctorNotes: doctorNotes || null,
+    // Send all available medicines so AI can pick from them
+    const allMedicinesList = medicines.map(m => ({
+      id: m.id,
+      name: m.name,
+      category: m.category,
+    }));
+
+    setSummaryLoading(true);
+    const summaryResult = await supabase.functions.invoke('generate-treatment-summary', {
+      body: {
+        symptoms: symptomInputs,
+        medicines: medicineInputs,
+        patientInfo: patient ? { name: patient.name, age: patient.age, gender: patient.gender } : null,
+        doctorNotes: doctorNotes || null,
+        allMedicines: allMedicinesList,
+      }
+    });
+
+    if (summaryResult.data?.summary) {
+      setTreatmentSummary(summaryResult.data.summary);
+
+      // Populate Suggested Medicines from AI-recommended medicines
+      const recommended = summaryResult.data.recommendedMedicines as { name: string; dosage: string; duration: string }[] | undefined;
+      if (recommended && recommended.length > 0) {
+        const aiMedicines: SuggestedMedicine[] = [];
+        const addedIds = new Set<string>();
+
+        for (const rec of recommended) {
+          // Find matching medicine in database (case-insensitive, partial match)
+          const match = medicines.find(m => 
+            m.name.toLowerCase() === rec.name.toLowerCase() ||
+            m.name.toLowerCase().includes(rec.name.toLowerCase()) ||
+            rec.name.toLowerCase().includes(m.name.toLowerCase())
+          );
+          if (match && !addedIds.has(match.id)) {
+            aiMedicines.push({
+              medicineId: match.id,
+              medicine: match,
+              dosage: rec.dosage || match.default_dosage || '10 drops twice daily',
+              duration: rec.duration || '7 days',
+              instructions: '',
+            });
+            addedIds.add(match.id);
+          }
         }
-      });
 
-      if (summaryResult.data?.summary) {
-        setTreatmentSummary(summaryResult.data.summary);
-      } else if (summaryResult.error) {
+        if (aiMedicines.length > 0) {
+          setSuggestedMedicines(aiMedicines);
+        } else {
+          // Fallback to rule-based if no AI medicines matched
+          setSuggestedMedicines(ruleBasedList);
+        }
+      } else {
+        setSuggestedMedicines(ruleBasedList);
+      }
+    } else {
+      // Fallback to rule-based medicines
+      setSuggestedMedicines(ruleBasedList);
+      if (summaryResult.error) {
         console.error('Treatment summary error:', summaryResult.error);
         toast.error('उपचार सारांश प्राप्त नहीं हो सका');
       }
-      setSummaryLoading(false);
     }
+    setSummaryLoading(false);
   };
 
   const removeMedicine = (medicineId: string) => {
