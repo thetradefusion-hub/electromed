@@ -25,6 +25,7 @@ interface MedicineRule {
   priority: number;
   is_global: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 interface Symptom {
