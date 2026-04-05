@@ -61,7 +61,7 @@ const RulesManagement = () => {
         .from('medicine_rules')
         .select('*')
         .eq('is_global', true)
-        .order('priority', { ascending: false });
+        .order('updated_at', { ascending: false });
 
       if (error) throw error;
       return data as MedicineRule[];
