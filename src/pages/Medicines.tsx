@@ -67,7 +67,8 @@ export default function Medicines() {
   // Only show the 38 main medicines (match by short name at start of medicine name)
   const isMainMedicine = (name: string) => {
     const upperName = name.trim().toUpperCase();
-    // Exact match or match like "S1 (Scrofoloso-1)" → extract prefix before space/bracket/dash
+    // Reject any combination (contains "+")
+    if (upperName.includes('+')) return false;
     const shortName = upperName.split(/[\s(\-]/)[0];
     return MAIN_MEDICINE_NAMES.has(shortName);
   };
