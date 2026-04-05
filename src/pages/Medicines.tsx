@@ -21,17 +21,28 @@ import {
 } from '@/components/ui/alert-dialog';
 
 const DEFAULT_CATEGORIES = [
-  'Temperament',
-  'Blood Purifier',
-  'Lymphatic',
-  'Digestive',
-  'Respiratory',
-  'Nervous',
-  'Urinary',
-  'Reproductive',
-  'Skin',
-  'General Tonic',
+  'Scrofoloso',
+  'Canceroso',
+  'Febrifugo',
+  'Angiotico',
+  'Linfatico',
+  'Pettorale',
+  'Vermifugo',
+  'Electricities',
 ];
+
+// 38 main Electro Homoeopathy medicines (short canonical names)
+const MAIN_MEDICINE_NAMES = new Set([
+  'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10',
+  'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C10',
+  'C11', 'C12', 'C13', 'C14', 'C15', 'C16', 'C17',
+  'F1', 'F2', 'F3',
+  'L1', 'L2',
+  'P1', 'P2', 'P3',
+  'A1', 'A2', 'A3',
+  'VEN1', 'VEN2', 'VEN3', 'VEN4', 'VEN5',
+  'GE', 'RE', 'WE', 'BE', 'YE',
+]);
 
 export default function Medicines() {
   const { medicines, loading, categories, createMedicine, updateMedicine, deleteMedicine, doctorId } = useMedicines();
@@ -53,12 +64,33 @@ export default function Medicines() {
 
   const allCategories = [...new Set([...DEFAULT_CATEGORIES, ...categories])].sort();
 
-  const filteredMedicines = medicines.filter((medicine) => {
+  // Only show the 38 main medicines (match by short name at start of medicine name)
+  const isMainMedicine = (name: string) => {
+    const upperName = name.trim().toUpperCase();
+    // Exact match or match like "S1 (Scrofoloso-1)" → extract prefix before space/bracket/dash
+    const shortName = upperName.split(/[\s(\-]/)[0];
+    return MAIN_MEDICINE_NAMES.has(shortName);
+  };
+
+  const mainMedicines = medicines.filter(m => isMainMedicine(m.name));
+
+  // Deduplicate by short name — keep first occurrence
+  const deduped = (() => {
+    const seen = new Set<string>();
+    return mainMedicines.filter(m => {
+      const key = m.name.trim().toUpperCase().split(/[\s(\-]/)[0];
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  })();
+
+  const filteredMedicines = deduped.filter((medicine) => {
     const matchesSearch =
       medicine.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (medicine.indications?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
     const matchesCategory =
-      selectedCategory === 'all' || medicine.category === selectedCategory;
+      selectedCategory === 'all' || medicine.category.toLowerCase().includes(selectedCategory.toLowerCase());
     return matchesSearch && matchesCategory;
   });
 
@@ -160,18 +192,14 @@ export default function Medicines() {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="medical-card p-4 text-center">
-          <p className="text-2xl font-bold text-primary">{medicines.length}</p>
-          <p className="text-sm text-muted-foreground">Total Medicines</p>
+          <p className="text-2xl font-bold text-primary">{deduped.length}</p>
+          <p className="text-sm text-muted-foreground">Main Medicines</p>
         </div>
         <div className="medical-card p-4 text-center">
-          <p className="text-2xl font-bold text-accent">{medicines.filter(m => m.is_global).length}</p>
-          <p className="text-sm text-muted-foreground">Global</p>
-        </div>
-        <div className="medical-card p-4 text-center">
-          <p className="text-2xl font-bold text-warning">{medicines.filter(m => !m.is_global).length}</p>
-          <p className="text-sm text-muted-foreground">Custom</p>
+          <p className="text-2xl font-bold text-accent">{filteredMedicines.length}</p>
+          <p className="text-sm text-muted-foreground">Showing</p>
         </div>
         <div className="medical-card p-4 text-center">
           <p className="text-2xl font-bold text-foreground">{allCategories.length}</p>
