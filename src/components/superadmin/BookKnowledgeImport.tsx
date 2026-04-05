@@ -248,6 +248,10 @@ export default function BookKnowledgeImport() {
       }
 
       toast.success(`${savedCount} rules saved to knowledge base!`);
+      // Invalidate rules, symptoms, and medicines queries so other tabs show updated data
+      queryClient.invalidateQueries({ queryKey: ['admin-rules'] });
+      queryClient.invalidateQueries({ queryKey: ['all-symptoms'] });
+      queryClient.invalidateQueries({ queryKey: ['all-medicines'] });
       setExtractedRules([]);
       setExtractedSymptoms([]);
       setExtractedMedicines([]);
