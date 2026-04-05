@@ -37,6 +37,7 @@ interface ExtractedMedicine {
 }
 
 export default function BookKnowledgeImport() {
+  const queryClient = useQueryClient();
   const [uploadMode, setUploadMode] = useState<'image' | 'text'>('image');
   const [textContent, setTextContent] = useState('');
   const [isExtracting, setIsExtracting] = useState(false);
